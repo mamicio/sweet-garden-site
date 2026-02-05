@@ -9,6 +9,18 @@ desktop.ini
 *.swp
 *.swo
 
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Google credentials (NEVER commit)
+service-account*.json
+credentials*.json
+*-credentials.json
+
 # Misc
 *.log
-node_modules/
