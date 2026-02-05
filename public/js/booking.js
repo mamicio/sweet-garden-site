@@ -87,6 +87,12 @@
                     this.submitBooking();
                 });
             }
+
+            // Reset button (confirmation screen)
+            const resetBtn = document.getElementById('bookingResetBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => this.reset());
+            }
         },
 
         goToStep(step) {
