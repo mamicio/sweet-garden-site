@@ -14,13 +14,13 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:"],
-            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https://*.googleusercontent.com"],
+            scriptSrc: ["'self'", "https://accounts.google.com", "https://apis.google.com"],
             scriptSrcAttr: ["'self'", "'unsafe-inline'"],
-            frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com"],
-            connectSrc: ["'self'"]
+            frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com", "https://accounts.google.com"],
+            connectSrc: ["'self'", "https://accounts.google.com", "https://oauth2.googleapis.com"]
         }
     }
 }));
@@ -31,7 +31,7 @@ app.use(cors({
         ? process.env.RENDER_EXTERNAL_URL || true
         : 'http://localhost:3000',
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type']
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Parse JSON bodies
@@ -42,6 +42,11 @@ app.use('/api', apiRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// OAuth callback route
+app.get('/auth/callback', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'auth', 'callback.html'));
+});
 
 // SPA fallback
 app.get('*', (req, res) => {

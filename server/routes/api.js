@@ -1,11 +1,105 @@
 const express = require('express');
 const router = express.Router();
+const { OAuth2Client } = require('google-auth-library');
 const { bookingLimiter } = require('../middleware/rateLimit');
 const { getAvailableSlots, createBooking } = require('../services/calendarService');
+const { isAuthorizedEmail, getFinanzasResumen } = require('../services/sheetsService');
+
+// Google OAuth client for token verification
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const oauthClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+
+// Verify Google token and extract user info
+async function verifyGoogleToken(token) {
+    if (!oauthClient) {
+        throw new Error('Google OAuth not configured');
+    }
+
+    const ticket = await oauthClient.verifyIdToken({
+        idToken: token,
+        audience: GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    return {
+        email: payload.email,
+        name: payload.name,
+        picture: payload.picture,
+        emailVerified: payload.email_verified
+    };
+}
+
+// Middleware to verify authorization token
+async function requireAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Token de autorización requerido' });
+    }
+
+    const token = authHeader.substring(7);
+
+    try {
+        const user = await verifyGoogleToken(token);
+
+        if (!user.emailVerified) {
+            return res.status(403).json({ error: 'Email no verificado' });
+        }
+
+        if (!isAuthorizedEmail(user.email)) {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+
+        req.user = user;
+        next();
+    } catch (err) {
+        console.error('Token verification failed:', err.message);
+        return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+}
 
 // Health check
 router.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'sweet-garden' });
+});
+
+// Get Google Client ID for frontend
+router.get('/auth/config', (req, res) => {
+    res.json({
+        clientId: GOOGLE_CLIENT_ID || null
+    });
+});
+
+// Verify Google token and check authorization
+router.post('/auth/verify', async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ error: 'Token requerido' });
+    }
+
+    try {
+        const user = await verifyGoogleToken(token);
+
+        if (!user.emailVerified) {
+            return res.json({
+                authorized: false,
+                email: user.email,
+                reason: 'Email no verificado'
+            });
+        }
+
+        const authorized = isAuthorizedEmail(user.email);
+
+        res.json({
+            authorized,
+            email: user.email,
+            name: user.name
+        });
+    } catch (err) {
+        console.error('Token verification failed:', err.message);
+        res.status(401).json({ error: 'Token inválido' });
+    }
 });
 
 // Get available slots for a date
@@ -97,6 +191,25 @@ router.post('/bookings', bookingLimiter, async (req, res, next) => {
             message: 'Reserva creada exitosamente',
             booking
         });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// Get finance data (requires Google authentication)
+router.get('/finanzas', requireAuth, async (req, res, next) => {
+    try {
+        const { year, month } = req.query;
+
+        const yearNum = parseInt(year);
+        const monthNum = parseInt(month);
+
+        if (!yearNum || !monthNum || monthNum < 1 || monthNum > 12) {
+            return res.status(400).json({ error: 'Año y mes son requeridos' });
+        }
+
+        const data = await getFinanzasResumen(yearNum, monthNum);
+        res.json(data);
     } catch (err) {
         next(err);
     }
