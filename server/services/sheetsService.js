@@ -24,9 +24,9 @@ function getSheetsClient() {
     return sheets;
 }
 
-// Spreadsheet IDs
-const INGRESOS_SHEET_ID = '1L5wMG1AGVWRMcja2m-8EUhI5UoMSG1OTbsZtJNir4YY';
-const EGRESOS_SHEET_ID = '12IS-LDaMvtrmIP0ZFCs9XyJTP44OcXxqI_LzxXY8z4k';
+// Spreadsheet IDs from environment
+const INGRESOS_SHEET_ID = process.env.INGRESOS_SHEET_ID;
+const EGRESOS_SHEET_ID = process.env.EGRESOS_SHEET_ID;
 
 // Parse Colombian currency format (e.g., "$1.234.567" or "1234567")
 function parseCurrency(value) {
@@ -45,11 +45,11 @@ function findColumnIndex(headers, columnName) {
     return index;
 }
 
-// Authorized emails for finance section
-const AUTHORIZED_EMAILS = [
-    'danielcardona0829@gmail.com',
-    'daniel.cardona@sentiretaller.com'
-];
+// Authorized emails for finance section (from environment variable, comma-separated)
+const AUTHORIZED_EMAILS = (process.env.AUTHORIZED_EMAILS || '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
 
 function isAuthorizedEmail(email) {
     return AUTHORIZED_EMAILS.includes(email?.toLowerCase());
@@ -209,6 +209,5 @@ module.exports = {
     isAuthorizedEmail,
     getIngresos,
     getEgresos,
-    getFinanzasResumen,
-    AUTHORIZED_EMAILS
+    getFinanzasResumen
 };

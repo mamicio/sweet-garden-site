@@ -1,36 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { OAuth2Client } = require('google-auth-library');
 const { bookingLimiter } = require('../middleware/rateLimit');
 const { getAvailableSlots, createBooking } = require('../services/calendarService');
-const { isAuthorizedEmail, getFinanzasResumen } = require('../services/sheetsService');
+const { getFinanzasResumen } = require('../services/sheetsService');
+const {
+    verifyGoogleToken,
+    createSessionToken,
+    verifySessionToken,
+    isAuthorizedEmail,
+    GOOGLE_CLIENT_ID
+} = require('../services/authService');
 
-// Google OAuth client for token verification
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const oauthClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
-
-// Verify Google token and extract user info
-async function verifyGoogleToken(token) {
-    if (!oauthClient) {
-        throw new Error('Google OAuth not configured');
-    }
-
-    const ticket = await oauthClient.verifyIdToken({
-        idToken: token,
-        audience: GOOGLE_CLIENT_ID
-    });
-
-    const payload = ticket.getPayload();
-    return {
-        email: payload.email,
-        name: payload.name,
-        picture: payload.picture,
-        emailVerified: payload.email_verified
-    };
-}
-
-// Middleware to verify authorization token
-async function requireAuth(req, res, next) {
+// Middleware to verify JWT session token
+function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -40,21 +22,16 @@ async function requireAuth(req, res, next) {
     const token = authHeader.substring(7);
 
     try {
-        const user = await verifyGoogleToken(token);
+        const decoded = verifySessionToken(token);
 
-        if (!user.emailVerified) {
-            return res.status(403).json({ error: 'Email no verificado' });
-        }
-
-        if (!isAuthorizedEmail(user.email)) {
+        if (!isAuthorizedEmail(decoded.email)) {
             return res.status(403).json({ error: 'No autorizado' });
         }
 
-        req.user = user;
+        req.user = decoded;
         next();
     } catch (err) {
-        console.error('Token verification failed:', err.message);
-        return res.status(401).json({ error: 'Token inválido o expirado' });
+        return res.status(401).json({ error: 'Sesión inválida o expirada' });
     }
 }
 
@@ -70,7 +47,7 @@ router.get('/auth/config', (req, res) => {
     });
 });
 
-// Verify Google token and check authorization
+// Verify Google id_token (from One Tap) and return JWT session
 router.post('/auth/verify', async (req, res) => {
     const { token } = req.body;
 
@@ -91,14 +68,50 @@ router.post('/auth/verify', async (req, res) => {
 
         const authorized = isAuthorizedEmail(user.email);
 
+        if (!authorized) {
+            return res.json({
+                authorized: false,
+                email: user.email,
+                name: user.name
+            });
+        }
+
+        const sessionToken = createSessionToken(user);
+
         res.json({
-            authorized,
+            authorized: true,
             email: user.email,
-            name: user.name
+            name: user.name,
+            sessionToken
         });
     } catch (err) {
         console.error('Token verification failed:', err.message);
         res.status(401).json({ error: 'Token inválido' });
+    }
+});
+
+// Verify existing JWT session (for page reload)
+router.post('/auth/session', (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ error: 'Token requerido' });
+    }
+
+    try {
+        const decoded = verifySessionToken(token);
+
+        if (!isAuthorizedEmail(decoded.email)) {
+            return res.json({ authorized: false });
+        }
+
+        res.json({
+            authorized: true,
+            email: decoded.email,
+            name: decoded.name
+        });
+    } catch (err) {
+        res.json({ authorized: false });
     }
 });
 
@@ -196,7 +209,7 @@ router.post('/bookings', bookingLimiter, async (req, res, next) => {
     }
 });
 
-// Get finance data (requires Google authentication)
+// Get finance data (requires authenticated session)
 router.get('/finanzas', requireAuth, async (req, res, next) => {
     try {
         const { year, month } = req.query;
