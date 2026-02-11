@@ -224,7 +224,8 @@ router.get('/finanzas', requireAuth, async (req, res, next) => {
         const data = await getFinanzasResumen(yearNum, monthNum);
         res.json(data);
     } catch (err) {
-        next(err);
+        console.error('Finanzas error:', err.message);
+        res.status(500).json({ error: err.message || 'Error al cargar datos financieros' });
     }
 });
 
