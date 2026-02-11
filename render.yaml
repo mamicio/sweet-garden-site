@@ -8,8 +8,20 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
       - key: GOOGLE_SERVICE_ACCOUNT_JSON
         sync: false
       - key: GOOGLE_CALENDAR_ID
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: AUTHORIZED_EMAILS
+        sync: false
+      - key: INGRESOS_SHEET_ID
+        sync: false
+      - key: EGRESOS_SHEET_ID
         sync: false
     healthCheckPath: /api/health
