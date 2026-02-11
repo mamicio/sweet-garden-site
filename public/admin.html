@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Sweet Garden</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
+    <script src="https://accounts.google.com/gsi/client" async></script>
+</head>
+<body>
+    <!-- Admin Navbar -->
+    <nav class="navbar">
+        <div class="container navbar__inner">
+            <a href="/" class="navbar__logo">
+                <img src="/img/logo.svg" alt="Sweet Garden" class="navbar__logo-img">
+            </a>
+            <ul class="navbar__menu">
+                <li><a href="/" class="navbar__link">Volver al sitio</a></li>
+                <li id="navLogoutItem" style="display:none;">
+                    <button id="finanzasLogout" class="navbar__link navbar__link--login">Cerrar sesión</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Login View -->
+    <section id="adminLogin" class="finanzas" style="padding-top: 140px; min-height: 100vh;">
+        <div class="container">
+            <div class="finanzas__login">
+                <div class="finanzas__login-card">
+                    <div class="finanzas__login-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <h3>Acceso Administrativo</h3>
+                    <p>Inicia sesión con tu cuenta de Google autorizada para acceder al panel de finanzas.</p>
+                    <button id="googleLoginBtn" class="btn btn--primary" style="width:100%;">Iniciar sesión con Google</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard View (hidden until auth) -->
+    <section id="adminDashboard" class="finanzas" style="padding-top: 140px; min-height: 100vh; display: none;">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Panel de <span>Finanzas</span></h2>
+                <div class="section-divider"></div>
+            </div>
+
+            <div class="finanzas__dashboard">
+                <div class="finanzas__header">
+                    <div class="finanzas__user">
+                        <span id="finanzasUserEmail"></span>
+                    </div>
+                    <div class="finanzas__filters">
+                        <select id="finanzasMonth" class="finanzas__select">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                        <select id="finanzasYear" class="finanzas__select">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                        <button id="finanzasLoad" class="btn btn--primary">Consultar</button>
+                    </div>
+                </div>
+
+                <div id="finanzasLoading" class="finanzas__loading finanzas--hidden">
+                    <div class="booking-spinner"></div>
+                    <p>Cargando datos financieros...</p>
+                </div>
+
+                <div id="finanzasError" class="finanzas__error-box finanzas--hidden"></div>
+
+                <!-- Summary Cards -->
+                <div id="finanzasResumen" class="finanzas__resumen finanzas--hidden">
+                    <div class="finanzas__card finanzas__card--ingresos">
+                        <h4>Total Ingresos</h4>
+                        <p class="finanzas__amount" id="totalIngresos">$0</p>
+                    </div>
+                    <div class="finanzas__card finanzas__card--egresos">
+                        <h4>Total Egresos</h4>
+                        <p class="finanzas__amount" id="totalEgresos">$0</p>
+                    </div>
+                    <div class="finanzas__card finanzas__card--flujo">
+                        <h4>Flujo de Caja</h4>
+                        <p class="finanzas__amount" id="flujoCaja">$0</p>
+                    </div>
+                </div>
+
+                <!-- Data Tables -->
+                <div id="finanzasTablas" class="finanzas__tablas finanzas--hidden">
+                    <div class="finanzas__tabla">
+                        <h3>Ingresos del Mes</h3>
+                        <div class="finanzas__table-wrapper">
+                            <table id="tablaIngresos">
+                                <thead>
+                                    <tr>
+                                        <th>Día</th>
+                                        <th>Nombre</th>
+                                        <th>Producto</th>
+                                        <th>Valor Neto</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="finanzas__tabla">
+                        <h3>Egresos del Mes</h3>
+                        <div class="finanzas__table-wrapper">
+                            <table id="tablaEgresos">
+                                <thead>
+                                    <tr>
+                                        <th>Día</th>
+                                        <th>Comercio</th>
+                                        <th>Concepto</th>
+                                        <th>Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="/js/finanzas.js"></script>
+</body>
+</html>
