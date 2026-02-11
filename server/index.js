@@ -132,7 +132,9 @@ app.get('*', (req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    const message = process.env.NODE_ENV === 'production'
+    // API routes return the real error (they're behind auth anyway)
+    const isApi = req.path.startsWith('/api/');
+    const message = (!isApi && process.env.NODE_ENV === 'production')
         ? 'Ocurrió un error. Por favor intenta nuevamente.'
         : err.message;
     res.status(err.status || 500).json({ error: message });
