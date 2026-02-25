@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { bookingLimiter } = require('../middleware/rateLimit');
 const { getAvailableSlots, createBooking } = require('../services/calendarService');
-const { getFinanzasResumen } = require('../services/sheetsService');
+const { getFinanzasResumen, getFullSheet, updateCell, appendRow } = require('../services/sheetsService');
 const {
     verifyGoogleToken,
     createSessionToken,
@@ -226,6 +226,77 @@ router.get('/finanzas', requireAuth, async (req, res, next) => {
     } catch (err) {
         console.error('Finanzas error:', err.message);
         res.status(500).json({ error: err.message || 'Error al cargar datos financieros' });
+    }
+});
+
+// Get full sheet data (all columns, filtered by year/month)
+router.get('/finanzas/sheet/:type', requireAuth, async (req, res) => {
+    try {
+        const { type } = req.params;
+        if (!['ingresos', 'egresos'].includes(type)) {
+            return res.status(400).json({ error: 'Tipo debe ser "ingresos" o "egresos"' });
+        }
+
+        const year = parseInt(req.query.year);
+        const month = parseInt(req.query.month);
+        if (!year || !month || month < 1 || month > 12) {
+            return res.status(400).json({ error: 'Año y mes son requeridos' });
+        }
+
+        const data = await getFullSheet(type, year, month);
+        res.json(data);
+    } catch (err) {
+        console.error(`Sheet read error (${req.params.type}):`, err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update a single cell
+router.put('/finanzas/cell', requireAuth, async (req, res) => {
+    try {
+        const { sheetType, rowIndex, colIndex, value } = req.body;
+
+        if (!['ingresos', 'egresos'].includes(sheetType)) {
+            return res.status(400).json({ error: 'sheetType inválido' });
+        }
+        if (!Number.isInteger(rowIndex) || rowIndex < 2) {
+            return res.status(400).json({ error: 'rowIndex inválido' });
+        }
+        if (!Number.isInteger(colIndex) || colIndex < 0 || colIndex > 25) {
+            return res.status(400).json({ error: 'colIndex inválido' });
+        }
+        if (typeof value !== 'string' || value.length > 1000) {
+            return res.status(400).json({ error: 'value inválido' });
+        }
+
+        const result = await updateCell(sheetType, rowIndex, colIndex, value);
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        console.error('Cell update error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Append a new row
+router.post('/finanzas/row', requireAuth, async (req, res) => {
+    try {
+        const { sheetType, cells } = req.body;
+
+        if (!['ingresos', 'egresos'].includes(sheetType)) {
+            return res.status(400).json({ error: 'sheetType inválido' });
+        }
+        if (!Array.isArray(cells) || cells.length === 0 || cells.length > 26) {
+            return res.status(400).json({ error: 'cells inválido' });
+        }
+        if (!cells.every(c => typeof c === 'string' && c.length <= 1000)) {
+            return res.status(400).json({ error: 'Todas las celdas deben ser strings válidos' });
+        }
+
+        const result = await appendRow(sheetType, cells);
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        console.error('Row append error:', err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 

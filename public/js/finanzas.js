@@ -1,4 +1,4 @@
-// ====== Sweet Garden — Admin / Finanzas Module ======
+// ====== Sweet Garden — Admin / Finanzas Module (Spreadsheet View) ======
 
 (function() {
     'use strict';
@@ -20,15 +20,20 @@
     const totalIngresosEl = document.getElementById('totalIngresos');
     const totalEgresosEl = document.getElementById('totalEgresos');
     const flujoCajaEl = document.getElementById('flujoCaja');
-    const tablaIngresos = document.getElementById('tablaIngresos').querySelector('tbody');
-    const tablaEgresos = document.getElementById('tablaEgresos').querySelector('tbody');
 
     // State
     let currentUser = null;
     let googleClientId = null;
     let googleInitialized = false;
+    let sheetData = {
+        ingresos: { headers: [], rows: [], currencyColumns: [] },
+        egresos: { headers: [], rows: [], currencyColumns: [] }
+    };
+    const pendingSaves = new Map();
+    const SAVE_DEBOUNCE_MS = 800;
 
-    // Initialize
+    // ====== Init ======
+
     async function init() {
         const now = new Date();
         monthSelect.value = now.getMonth() + 1;
@@ -46,13 +51,16 @@
         googleLoginBtn.addEventListener('click', handleGoogleLogin);
         logoutBtn.addEventListener('click', handleLogout);
         loadBtn.addEventListener('click', loadFinanzas);
+        document.getElementById('addRowIngresos').addEventListener('click', () => addNewRow('ingresos'));
+        document.getElementById('addRowEgresos').addEventListener('click', () => addNewRow('egresos'));
 
-        // Check for existing session
         const savedSession = localStorage.getItem('finanzas_session');
         if (savedSession) {
             verifySession(savedSession);
         }
     }
+
+    // ====== Google Auth (unchanged) ======
 
     function tryInitGoogle() {
         if (!googleClientId) return;
@@ -97,7 +105,6 @@
         }
     }
 
-    // Authorization Code flow — tokens exchanged server-side
     function openOAuthPopup() {
         const redirectUri = window.location.origin + '/auth/callback';
         const scope = 'openid email profile';
@@ -146,7 +153,6 @@
         }, 500);
     }
 
-    // One Tap callback
     async function handleCredentialResponse(response) {
         await exchangeGoogleToken(response.credential);
     }
@@ -165,11 +171,7 @@
             const data = await response.json();
 
             if (data.authorized && data.sessionToken) {
-                currentUser = {
-                    email: data.email,
-                    name: data.name,
-                    token: data.sessionToken
-                };
+                currentUser = { email: data.email, name: data.name, token: data.sessionToken };
                 localStorage.setItem('finanzas_session', data.sessionToken);
                 showDashboard();
             } else {
@@ -198,11 +200,7 @@
             const data = await response.json();
 
             if (data.authorized) {
-                currentUser = {
-                    email: data.email,
-                    name: data.name,
-                    token: sessionToken
-                };
+                currentUser = { email: data.email, name: data.name, token: sessionToken };
                 showDashboard();
             } else {
                 localStorage.removeItem('finanzas_session');
@@ -240,12 +238,14 @@
         tablasEl.classList.add('finanzas--hidden');
     }
 
+    // ====== Data Loading ======
+
     async function loadFinanzas() {
         const year = yearSelect.value;
         const month = monthSelect.value;
 
         if (!currentUser || !currentUser.token) {
-            showError('Sesión expirada. Por favor inicia sesión nuevamente.');
+            showError('Sesión expirada.');
             handleLogout();
             return;
         }
@@ -255,24 +255,45 @@
         resumenEl.classList.add('finanzas--hidden');
         tablasEl.classList.add('finanzas--hidden');
 
+        const headers = { 'Authorization': `Bearer ${currentUser.token}` };
+
         try {
-            const response = await fetch(`/api/finanzas?year=${year}&month=${month}`, {
-                headers: { 'Authorization': `Bearer ${currentUser.token}` }
-            });
+            const [resumenRes, ingresosRes, egresosRes] = await Promise.all([
+                fetch(`/api/finanzas?year=${year}&month=${month}`, { headers }),
+                fetch(`/api/finanzas/sheet/ingresos?year=${year}&month=${month}`, { headers }),
+                fetch(`/api/finanzas/sheet/egresos?year=${year}&month=${month}`, { headers })
+            ]);
 
-            if (response.status === 401 || response.status === 403) {
-                handleLogout();
-                alert('Sesión expirada. Por favor inicia sesión nuevamente.');
-                return;
+            // Check auth on any response
+            for (const res of [resumenRes, ingresosRes, egresosRes]) {
+                if (res.status === 401 || res.status === 403) {
+                    handleLogout();
+                    alert('Sesión expirada. Por favor inicia sesión nuevamente.');
+                    return;
+                }
             }
 
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Error al cargar datos');
+            if (!resumenRes.ok || !ingresosRes.ok || !egresosRes.ok) {
+                const errRes = [resumenRes, ingresosRes, egresosRes].find(r => !r.ok);
+                const errData = await errRes.json();
+                throw new Error(errData.error || 'Error al cargar datos');
             }
 
-            const data = await response.json();
-            renderData(data);
+            const [resumen, ingresos, egresos] = await Promise.all([
+                resumenRes.json(),
+                ingresosRes.json(),
+                egresosRes.json()
+            ]);
+
+            sheetData.ingresos = ingresos;
+            sheetData.egresos = egresos;
+
+            renderSummary(resumen.resumen);
+            renderSpreadsheet('ingresos', ingresos);
+            renderSpreadsheet('egresos', egresos);
+
+            resumenEl.classList.remove('finanzas--hidden');
+            tablasEl.classList.remove('finanzas--hidden');
         } catch (err) {
             console.error('Finance load error:', err);
             showError(err.message || 'Error al cargar datos financieros');
@@ -281,53 +302,289 @@
         }
     }
 
-    function renderData(data) {
-        const { ingresos, egresos, resumen } = data;
+    // ====== Rendering ======
 
+    function renderSummary(resumen) {
         totalIngresosEl.textContent = formatCurrency(resumen.totalIngresos);
         totalEgresosEl.textContent = formatCurrency(resumen.totalEgresos);
         flujoCajaEl.textContent = formatCurrency(resumen.flujoCaja);
 
         const flujoCard = flujoCajaEl.closest('.finanzas__card');
         flujoCard.classList.toggle('negative', resumen.flujoCaja < 0);
-
-        tablaIngresos.innerHTML = '';
-        if (ingresos.length === 0) {
-            tablaIngresos.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray-600);">Sin ingresos en este mes</td></tr>';
-        } else {
-            ingresos.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.dia}</td>
-                    <td>${escapeHtml(item.nombre)}</td>
-                    <td>${escapeHtml(item.producto)}</td>
-                    <td>${formatCurrency(item.valorNeto)}</td>
-                `;
-                tablaIngresos.appendChild(row);
-            });
-        }
-
-        tablaEgresos.innerHTML = '';
-        if (egresos.length === 0) {
-            tablaEgresos.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray-600);">Sin egresos en este mes</td></tr>';
-        } else {
-            egresos.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.dia}</td>
-                    <td>${escapeHtml(item.comercio)}</td>
-                    <td>${escapeHtml(item.concepto)}</td>
-                    <td>${formatCurrency(item.valor)}</td>
-                `;
-                tablaEgresos.appendChild(row);
-            });
-        }
-
-        resumenEl.classList.remove('finanzas--hidden');
-        tablasEl.classList.remove('finanzas--hidden');
     }
 
-    // Helpers
+    function renderSpreadsheet(sheetType, data) {
+        const { headers, rows, currencyColumns } = data;
+        const tableId = sheetType === 'ingresos' ? 'tablaIngresos' : 'tablaEgresos';
+        const tableEl = document.getElementById(tableId);
+        const thead = tableEl.querySelector('thead tr');
+        const tbody = tableEl.querySelector('tbody');
+
+        // Build header row: # + all sheet headers
+        thead.innerHTML = '<th>#</th>' +
+            headers.map(h => {
+                const div = document.createElement('div');
+                div.textContent = h;
+                return `<th>${div.innerHTML}</th>`;
+            }).join('');
+
+        // Build data rows
+        tbody.innerHTML = '';
+        if (rows.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" style="text-align:center;color:var(--gray-600);padding:20px;">Sin datos en este mes</td></tr>`;
+            return;
+        }
+
+        rows.forEach((rowData, displayIndex) => {
+            const tr = document.createElement('tr');
+
+            // Row number (non-editable)
+            const numTd = document.createElement('td');
+            numTd.textContent = displayIndex + 1;
+            numTd.title = `Fila ${rowData.rowIndex} en la hoja`;
+            tr.appendChild(numTd);
+
+            // Data cells (editable)
+            rowData.cells.forEach((cellValue, colIndex) => {
+                const td = document.createElement('td');
+                const isCurrency = currencyColumns.includes(colIndex);
+
+                if (isCurrency && cellValue) {
+                    const numVal = parseCurrencyClient(cellValue);
+                    td.textContent = numVal !== 0 ? formatCurrency(numVal) : cellValue;
+                    td.dataset.rawValue = cellValue;
+                } else {
+                    td.textContent = cellValue;
+                }
+
+                td.contentEditable = 'true';
+                td.dataset.sheetType = sheetType;
+                td.dataset.rowIndex = rowData.rowIndex;
+                td.dataset.colIndex = colIndex;
+                td.dataset.isCurrency = isCurrency;
+
+                td.addEventListener('focus', handleCellFocus);
+                td.addEventListener('blur', handleCellBlur);
+                td.addEventListener('keydown', handleCellKeydown);
+
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ====== Cell Editing ======
+
+    function handleCellFocus(e) {
+        const td = e.target;
+        // Show raw value for currency cells
+        if (td.dataset.isCurrency === 'true' && td.dataset.rawValue !== undefined) {
+            td.textContent = td.dataset.rawValue;
+        }
+        td.dataset.originalValue = td.textContent;
+
+        // Select all text
+        const range = document.createRange();
+        range.selectNodeContents(td);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+
+    function handleCellBlur(e) {
+        const td = e.target;
+        const newValue = td.textContent.trim();
+        const originalValue = td.dataset.originalValue || '';
+        const isCurrency = td.dataset.isCurrency === 'true';
+
+        // Re-format currency for display
+        if (isCurrency) {
+            td.dataset.rawValue = newValue;
+            const numVal = parseCurrencyClient(newValue);
+            td.textContent = numVal !== 0 ? formatCurrency(numVal) : newValue;
+        }
+
+        // Only save if changed
+        if (newValue !== originalValue) {
+            debounceSave(td, newValue);
+        }
+    }
+
+    function handleCellKeydown(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const next = e.shiftKey ? getPrevCell(e.target) : getNextCell(e.target);
+            if (next) next.focus();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const below = getCellBelow(e.target);
+            if (below) below.focus();
+            else e.target.blur();
+        } else if (e.key === 'Escape') {
+            e.target.textContent = e.target.dataset.originalValue || '';
+            e.target.blur();
+        }
+    }
+
+    // ====== Cell Navigation ======
+
+    function getNextCell(td) {
+        let next = td.nextElementSibling;
+        if (next && !next.hasAttribute('contenteditable')) next = next.nextElementSibling;
+        if (next) return next;
+        const nextRow = td.parentElement.nextElementSibling;
+        return nextRow ? nextRow.querySelector('td[contenteditable]') : null;
+    }
+
+    function getPrevCell(td) {
+        let prev = td.previousElementSibling;
+        if (prev && !prev.hasAttribute('contenteditable')) prev = prev.previousElementSibling;
+        if (prev) return prev;
+        const prevRow = td.parentElement.previousElementSibling;
+        if (prevRow) {
+            const cells = prevRow.querySelectorAll('td[contenteditable]');
+            return cells.length ? cells[cells.length - 1] : null;
+        }
+        return null;
+    }
+
+    function getCellBelow(td) {
+        const colPos = Array.from(td.parentElement.children).indexOf(td);
+        const nextRow = td.parentElement.nextElementSibling;
+        return (nextRow && nextRow.children[colPos]) ? nextRow.children[colPos] : null;
+    }
+
+    // ====== Auto-Save ======
+
+    function debounceSave(td, value) {
+        const key = `${td.dataset.sheetType}-${td.dataset.rowIndex}-${td.dataset.colIndex}`;
+
+        if (pendingSaves.has(key)) {
+            clearTimeout(pendingSaves.get(key).timeout);
+        }
+
+        td.classList.add('finanzas__cell--saving');
+        updateSaveStatus(td.dataset.sheetType, 'Guardando...');
+
+        const timeout = setTimeout(() => executeSave(td, key, value), SAVE_DEBOUNCE_MS);
+        pendingSaves.set(key, { timeout });
+    }
+
+    async function executeSave(td, key, value) {
+        try {
+            const response = await fetch('/api/finanzas/cell', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentUser.token}`
+                },
+                body: JSON.stringify({
+                    sheetType: td.dataset.sheetType,
+                    rowIndex: parseInt(td.dataset.rowIndex),
+                    colIndex: parseInt(td.dataset.colIndex),
+                    value: value
+                })
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                handleLogout();
+                alert('Sesión expirada.');
+                return;
+            }
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Error al guardar');
+            }
+
+            td.classList.remove('finanzas__cell--saving');
+            td.classList.add('finanzas__cell--saved');
+            setTimeout(() => td.classList.remove('finanzas__cell--saved'), 600);
+            updateSaveStatus(td.dataset.sheetType, 'Guardado');
+            setTimeout(() => updateSaveStatus(td.dataset.sheetType, ''), 2000);
+        } catch (err) {
+            console.error('Save error:', err);
+            td.classList.remove('finanzas__cell--saving');
+            td.classList.add('finanzas__cell--error');
+            updateSaveStatus(td.dataset.sheetType, `Error: ${err.message}`, true);
+            setTimeout(() => td.classList.remove('finanzas__cell--error'), 3000);
+        } finally {
+            pendingSaves.delete(key);
+        }
+    }
+
+    function updateSaveStatus(sheetType, message, isError) {
+        const el = document.getElementById(sheetType === 'ingresos' ? 'ingresosStatus' : 'egresosStatus');
+        el.textContent = message;
+        el.className = 'finanzas__save-status' +
+            (isError ? ' finanzas__save-status--error' : message ? ' finanzas__save-status--saving' : '');
+    }
+
+    // ====== Add New Row ======
+
+    async function addNewRow(sheetType) {
+        const data = sheetData[sheetType];
+        if (!data.headers.length) {
+            showError('Carga los datos primero con "Consultar"');
+            return;
+        }
+
+        const year = yearSelect.value;
+        const month = monthSelect.value;
+
+        // Find year/month columns to pre-fill
+        const headers = data.headers;
+        const yearCol = headers.findIndex(h => h && h.toString().toLowerCase().trim() === 'año');
+        const monthCol = headers.findIndex(h => h && h.toString().toLowerCase().trim() === 'mes');
+
+        const cells = Array(headers.length).fill('');
+        if (yearCol !== -1) cells[yearCol] = year;
+        if (monthCol !== -1) cells[monthCol] = month;
+
+        try {
+            updateSaveStatus(sheetType, 'Agregando fila...');
+
+            const response = await fetch('/api/finanzas/row', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentUser.token}`
+                },
+                body: JSON.stringify({ sheetType, cells })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Error al agregar fila');
+            }
+
+            const result = await response.json();
+
+            // Add to local state and re-render
+            data.rows.push({ rowIndex: result.rowIndex, cells });
+            renderSpreadsheet(sheetType, data);
+
+            updateSaveStatus(sheetType, 'Fila agregada');
+            setTimeout(() => updateSaveStatus(sheetType, ''), 2000);
+
+            // Scroll to bottom and focus first editable cell
+            const tableEl = document.getElementById(sheetType === 'ingresos' ? 'tablaIngresos' : 'tablaEgresos');
+            const wrapper = tableEl.closest('.finanzas__table-wrapper--spreadsheet');
+            wrapper.scrollTop = wrapper.scrollHeight;
+
+            const tbody = tableEl.querySelector('tbody');
+            const lastRow = tbody.lastElementChild;
+            const firstEditable = lastRow && lastRow.querySelector('td[contenteditable]');
+            if (firstEditable) firstEditable.focus();
+        } catch (err) {
+            console.error('Add row error:', err);
+            updateSaveStatus(sheetType, `Error: ${err.message}`, true);
+        }
+    }
+
+    // ====== Helpers ======
+
     function showLoading(show) {
         loadingEl.classList.toggle('finanzas--hidden', !show);
     }
@@ -348,6 +605,12 @@
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(value);
+    }
+
+    function parseCurrencyClient(value) {
+        if (!value) return 0;
+        const cleaned = String(value).replace(/[$\s]/g, '').replace(/\./g, '').replace(',', '.');
+        return parseFloat(cleaned) || 0;
     }
 
     function escapeHtml(text) {

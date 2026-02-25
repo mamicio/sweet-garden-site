@@ -36,7 +36,7 @@ app.use(cors({
     origin: process.env.NODE_ENV === 'production'
         ? process.env.RENDER_EXTERNAL_URL || true
         : 'http://localhost:3000',
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PUT'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 

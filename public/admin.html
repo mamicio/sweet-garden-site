@@ -104,39 +104,33 @@
                     </div>
                 </div>
 
-                <!-- Data Tables -->
+                <!-- Data Tables — Full Spreadsheet View -->
                 <div id="finanzasTablas" class="finanzas__tablas finanzas--hidden">
-                    <div class="finanzas__tabla">
-                        <h3>Ingresos del Mes</h3>
-                        <div class="finanzas__table-wrapper">
+                    <div class="finanzas__tabla finanzas__tabla--full">
+                        <div class="finanzas__tabla-header">
+                            <h3>Ingresos del Mes</h3>
+                            <button id="addRowIngresos" class="btn btn--small btn--add">+ Nueva fila</button>
+                        </div>
+                        <div class="finanzas__table-wrapper finanzas__table-wrapper--spreadsheet">
                             <table id="tablaIngresos">
-                                <thead>
-                                    <tr>
-                                        <th>Día</th>
-                                        <th>Nombre</th>
-                                        <th>Producto</th>
-                                        <th>Valor Neto</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr></tr></thead>
                                 <tbody></tbody>
                             </table>
                         </div>
+                        <div id="ingresosStatus" class="finanzas__save-status"></div>
                     </div>
-                    <div class="finanzas__tabla">
-                        <h3>Egresos del Mes</h3>
-                        <div class="finanzas__table-wrapper">
+                    <div class="finanzas__tabla finanzas__tabla--full">
+                        <div class="finanzas__tabla-header">
+                            <h3>Egresos del Mes</h3>
+                            <button id="addRowEgresos" class="btn btn--small btn--add">+ Nueva fila</button>
+                        </div>
+                        <div class="finanzas__table-wrapper finanzas__table-wrapper--spreadsheet">
                             <table id="tablaEgresos">
-                                <thead>
-                                    <tr>
-                                        <th>Día</th>
-                                        <th>Comercio</th>
-                                        <th>Concepto</th>
-                                        <th>Valor</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr></tr></thead>
                                 <tbody></tbody>
                             </table>
                         </div>
+                        <div id="egresosStatus" class="finanzas__save-status"></div>
                     </div>
                 </div>
             </div>
