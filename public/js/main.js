@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Scroll reveal ---
     const revealElements = document.querySelectorAll(
-        '.about__card, .tarifa-card, .included__item, .contacto__item, .agenda__placeholder, .consentimiento__content'
+        '.about__card, .catalogo__item, .coming-soon, .contacto__item'
     );
 
     revealElements.forEach(el => el.classList.add('reveal'));

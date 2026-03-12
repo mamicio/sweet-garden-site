@@ -7,9 +7,9 @@
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css">
-    <link rel="icon" type="image/svg+xml" href="/img/favicon.svg">
+    <link rel="icon" type="image/png" href="/img/logos/favicon.png">
     <script src="https://accounts.google.com/gsi/client" async></script>
 </head>
 <body>
@@ -17,7 +17,7 @@
     <nav class="navbar">
         <div class="container navbar__inner">
             <a href="/" class="navbar__logo">
-                <img src="/img/logo.svg" alt="Sweet Garden" class="navbar__logo-img">
+                <img src="/img/logos/blanco-principal-header.png" alt="Sweet Garden" class="navbar__logo-img">
             </a>
             <ul class="navbar__menu">
                 <li><a href="/" class="navbar__link">Volver al sitio</a></li>
@@ -37,7 +37,7 @@
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     </div>
                     <h3>Acceso Administrativo</h3>
-                    <p>Inicia sesión con tu cuenta de Google autorizada para acceder al panel de finanzas.</p>
+                    <p>Inicia sesión con tu cuenta de Google autorizada para acceder al panel administrativo.</p>
                     <button id="googleLoginBtn" class="btn btn--primary" style="width:100%;">Iniciar sesión con Google</button>
                 </div>
             </div>
@@ -48,7 +48,7 @@
     <section id="adminDashboard" class="finanzas" style="padding-top: 140px; min-height: 100vh; display: none;">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Panel de <span>Finanzas</span></h2>
+                <h2 class="section-title">Panel <span>Administrativo</span></h2>
                 <div class="section-divider"></div>
             </div>
 
@@ -57,7 +57,28 @@
                     <div class="finanzas__user">
                         <span id="finanzasUserEmail"></span>
                     </div>
-                    <div class="finanzas__filters">
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="admin-tabs" id="adminTabs">
+                    <button class="admin-tab admin-tab--active" data-tab="consentimiento">Consentimiento</button>
+                    <button class="admin-tab" data-tab="finanzas">Finanzas</button>
+                    <button class="admin-tab" data-tab="ingresos">Ingresos</button>
+                    <button class="admin-tab" data-tab="egresos">Egresos</button>
+                </div>
+
+                <!-- ===== Tab: Consentimiento ===== -->
+                <div id="panelConsentimiento" class="admin-panel admin-panel--active">
+                    <div class="admin-panel__placeholder">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <h3>Consentimiento Informado</h3>
+                        <p>En construcción — Integración con firma digital AUCO pendiente.</p>
+                    </div>
+                </div>
+
+                <!-- ===== Tab: Finanzas (Resumen) ===== -->
+                <div id="panelFinanzas" class="admin-panel">
+                    <div class="finanzas__filters" style="margin-bottom: 20px;">
                         <select id="finanzasMonth" class="finanzas__select">
                             <option value="1">Enero</option>
                             <option value="2">Febrero</option>
@@ -79,33 +100,33 @@
                         </select>
                         <button id="finanzasLoad" class="btn btn--primary">Consultar</button>
                     </div>
+
+                    <div id="finanzasLoading" class="finanzas__loading finanzas--hidden">
+                        <div class="booking-spinner"></div>
+                        <p>Cargando datos financieros...</p>
+                    </div>
+
+                    <div id="finanzasError" class="finanzas__error-box finanzas--hidden"></div>
+
+                    <!-- Summary Cards -->
+                    <div id="finanzasResumen" class="finanzas__resumen finanzas--hidden">
+                        <div class="finanzas__card finanzas__card--ingresos">
+                            <h4>Total Ingresos</h4>
+                            <p class="finanzas__amount" id="totalIngresos">$0</p>
+                        </div>
+                        <div class="finanzas__card finanzas__card--egresos">
+                            <h4>Total Egresos</h4>
+                            <p class="finanzas__amount" id="totalEgresos">$0</p>
+                        </div>
+                        <div class="finanzas__card finanzas__card--flujo">
+                            <h4>Flujo de Caja</h4>
+                            <p class="finanzas__amount" id="flujoCaja">$0</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="finanzasLoading" class="finanzas__loading finanzas--hidden">
-                    <div class="booking-spinner"></div>
-                    <p>Cargando datos financieros...</p>
-                </div>
-
-                <div id="finanzasError" class="finanzas__error-box finanzas--hidden"></div>
-
-                <!-- Summary Cards -->
-                <div id="finanzasResumen" class="finanzas__resumen finanzas--hidden">
-                    <div class="finanzas__card finanzas__card--ingresos">
-                        <h4>Total Ingresos</h4>
-                        <p class="finanzas__amount" id="totalIngresos">$0</p>
-                    </div>
-                    <div class="finanzas__card finanzas__card--egresos">
-                        <h4>Total Egresos</h4>
-                        <p class="finanzas__amount" id="totalEgresos">$0</p>
-                    </div>
-                    <div class="finanzas__card finanzas__card--flujo">
-                        <h4>Flujo de Caja</h4>
-                        <p class="finanzas__amount" id="flujoCaja">$0</p>
-                    </div>
-                </div>
-
-                <!-- Data Tables — Full Spreadsheet View -->
-                <div id="finanzasTablas" class="finanzas__tablas finanzas--hidden">
+                <!-- ===== Tab: Ingresos ===== -->
+                <div id="panelIngresos" class="admin-panel">
                     <div class="finanzas__tabla finanzas__tabla--full">
                         <div class="finanzas__tabla-header">
                             <h3>Ingresos del Mes</h3>
@@ -119,6 +140,10 @@
                         </div>
                         <div id="ingresosStatus" class="finanzas__save-status"></div>
                     </div>
+                </div>
+
+                <!-- ===== Tab: Egresos ===== -->
+                <div id="panelEgresos" class="admin-panel">
                     <div class="finanzas__tabla finanzas__tabla--full">
                         <div class="finanzas__tabla-header">
                             <h3>Egresos del Mes</h3>

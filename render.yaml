@@ -24,4 +24,14 @@ services:
         sync: false
       - key: EGRESOS_SHEET_ID
         sync: false
+      - key: CALENDAR_SALA_1
+        sync: false
+      - key: CALENDAR_SALA_2
+        sync: false
+      - key: CALENDAR_SALA_3
+        sync: false
+      - key: CALENDAR_SALA_4A
+        sync: false
+      - key: CALENDAR_SALA_4B
+        sync: false
     healthCheckPath: /api/health

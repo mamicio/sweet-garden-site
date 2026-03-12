@@ -16,10 +16,10 @@
     const loadingEl = document.getElementById('finanzasLoading');
     const errorEl = document.getElementById('finanzasError');
     const resumenEl = document.getElementById('finanzasResumen');
-    const tablasEl = document.getElementById('finanzasTablas');
     const totalIngresosEl = document.getElementById('totalIngresos');
     const totalEgresosEl = document.getElementById('totalEgresos');
     const flujoCajaEl = document.getElementById('flujoCaja');
+    let activeTab = 'consentimiento';
 
     // State
     let currentUser = null;
@@ -53,6 +53,13 @@
         loadBtn.addEventListener('click', loadFinanzas);
         document.getElementById('addRowIngresos').addEventListener('click', () => addNewRow('ingresos'));
         document.getElementById('addRowEgresos').addEventListener('click', () => addNewRow('egresos'));
+
+        // Tab navigation
+        document.getElementById('adminTabs').addEventListener('click', (e) => {
+            const tab = e.target.closest('.admin-tab');
+            if (!tab) return;
+            switchTab(tab.dataset.tab);
+        });
 
         const savedSession = localStorage.getItem('finanzas_session');
         if (savedSession) {
@@ -235,7 +242,23 @@
         googleLoginBtn.textContent = 'Iniciar sesión con Google';
         googleLoginBtn.disabled = false;
         resumenEl.classList.add('finanzas--hidden');
-        tablasEl.classList.add('finanzas--hidden');
+    }
+
+    // ====== Tab Navigation ======
+
+    function switchTab(tabName) {
+        activeTab = tabName;
+        // Update tab buttons
+        document.querySelectorAll('.admin-tab').forEach(btn => {
+            btn.classList.toggle('admin-tab--active', btn.dataset.tab === tabName);
+        });
+        // Update panels
+        document.querySelectorAll('.admin-panel').forEach(panel => {
+            panel.classList.remove('admin-panel--active');
+        });
+        const panelId = 'panel' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add('admin-panel--active');
     }
 
     // ====== Data Loading ======
@@ -253,7 +276,6 @@
         showLoading(true);
         hideError();
         resumenEl.classList.add('finanzas--hidden');
-        tablasEl.classList.add('finanzas--hidden');
 
         const headers = { 'Authorization': `Bearer ${currentUser.token}` };
 
@@ -293,7 +315,6 @@
             renderSpreadsheet('egresos', egresos);
 
             resumenEl.classList.remove('finanzas--hidden');
-            tablasEl.classList.remove('finanzas--hidden');
         } catch (err) {
             console.error('Finance load error:', err);
             showError(err.message || 'Error al cargar datos financieros');

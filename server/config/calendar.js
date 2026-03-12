@@ -24,8 +24,39 @@ function getCalendarClient() {
     return calendar;
 }
 
+// Room configuration
+// Plus (full day): Sala 1, Sala 2, Sala 3
+// Flash (2h): Sala 4A, Sala 4B
+const ROOMS = {
+    plus: [
+        { name: 'Sala 1', calendarId: process.env.CALENDAR_SALA_1 },
+        { name: 'Sala 2', calendarId: process.env.CALENDAR_SALA_2 },
+        { name: 'Sala 3', calendarId: process.env.CALENDAR_SALA_3 }
+    ],
+    flash: [
+        { name: 'Sala 4A', calendarId: process.env.CALENDAR_SALA_4A },
+        { name: 'Sala 4B', calendarId: process.env.CALENDAR_SALA_4B }
+    ]
+};
+
+// Business hours
+const BUSINESS_START = 9;  // 9 AM
+const BUSINESS_END = 20;   // 8 PM
+
+// Legacy single calendar (fallback)
 function getCalendarId() {
     return process.env.GOOGLE_CALENDAR_ID || null;
 }
 
-module.exports = { getCalendarClient, getCalendarId };
+function getRooms(planType) {
+    return ROOMS[planType] || [];
+}
+
+module.exports = {
+    getCalendarClient,
+    getCalendarId,
+    getRooms,
+    ROOMS,
+    BUSINESS_START,
+    BUSINESS_END
+};

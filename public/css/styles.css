@@ -1,24 +1,24 @@
 /* ============================================
    Sweet Garden — Tattoo & Piercing Coworking
    Brand Colors:
-     Purple:  #6B3FA0 (primary)
-     Green:   #2D6A4F (accent)
+     Purple:  #663399 (Morado Amatista)
+     Green:   #3A5F0B (Verde Musgo)
      Gold:    #C9A84C (highlight)
-     Cream:   #F5F0E8 (light bg)
+     Beige:   #FAF9F6 (Beige Claro Suave)
      Navy:    #1A1F3D (dark bg)
    ============================================ */
 
 :root {
-    --purple: #6B3FA0;
-    --purple-light: #8B5FC8;
-    --purple-dark: #4A2570;
-    --green: #2D6A4F;
-    --green-light: #40916C;
-    --green-dark: #1B4332;
+    --purple: #663399;
+    --purple-light: #7B4DAD;
+    --purple-dark: #4D2673;
+    --green: #3A5F0B;
+    --green-light: #4E7A14;
+    --green-dark: #2A4508;
     --gold: #C9A84C;
     --gold-light: #D4BC6A;
-    --cream: #F5F0E8;
-    --cream-dark: #EDE5D8;
+    --cream: #FAF9F6;
+    --cream-dark: #F0EDE8;
     --navy: #1A1F3D;
     --navy-light: #252B4D;
     --white: #FFFFFF;
@@ -51,7 +51,7 @@ html {
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--gray-800);
     line-height: 1.6;
     background: var(--white);
@@ -86,7 +86,7 @@ ul {
 
 /* ===== TYPOGRAPHY ===== */
 h1, h2, h3, h4 {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Poppins', sans-serif;
     line-height: 1.2;
 }
 
@@ -127,7 +127,7 @@ h1, h2, h3, h4 {
     gap: 8px;
     padding: 14px 32px;
     border-radius: 50px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
@@ -329,7 +329,7 @@ h1, h2, h3, h4 {
 }
 
 .hero__subtitle {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 0.9rem;
     font-weight: 500;
     letter-spacing: 3px;
@@ -548,7 +548,7 @@ h1, h2, h3, h4 {
 }
 
 .tarifa-card__name {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 2rem;
     font-weight: 700;
     font-style: italic;
@@ -580,7 +580,7 @@ h1, h2, h3, h4 {
 }
 
 .tarifa-card__amount {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 2.8rem;
     font-weight: 700;
 }
@@ -775,7 +775,7 @@ h1, h2, h3, h4 {
 
 .booking-type-btn__price {
     display: block;
-    font-family: 'Playfair Display', serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.4rem;
     font-weight: 700;
     color: var(--purple);
@@ -824,7 +824,7 @@ h1, h2, h3, h4 {
 }
 
 .booking-date-input {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.1rem;
     padding: 14px 24px;
     border: 2px solid var(--gray-200);
@@ -957,7 +957,7 @@ h1, h2, h3, h4 {
     padding: 12px 16px;
     border: 2px solid var(--gray-200);
     border-radius: var(--radius-sm);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 0.95rem;
     color: var(--gray-800);
     background: var(--white);
@@ -1099,7 +1099,7 @@ h1, h2, h3, h4 {
 }
 
 .contacto__item h4 {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -1188,7 +1188,7 @@ h1, h2, h3, h4 {
 
 .footer__links h4,
 .footer__social h4 {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -1486,7 +1486,7 @@ h1, h2, h3, h4 {
     padding: 14px 20px;
     border: 2px solid var(--gray-200);
     border-radius: var(--radius-sm);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1rem;
     text-align: center;
     transition: border-color var(--transition);
@@ -1557,7 +1557,7 @@ h1, h2, h3, h4 {
     padding: 10px 16px;
     border: 2px solid var(--gray-200);
     border-radius: var(--radius-sm);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 0.95rem;
     background: var(--white);
     cursor: pointer;
@@ -1605,7 +1605,7 @@ h1, h2, h3, h4 {
 }
 
 .finanzas__card h4 {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 0.85rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -1615,7 +1615,7 @@ h1, h2, h3, h4 {
 }
 
 .finanzas__amount {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 2rem;
     font-weight: 700;
 }
@@ -1831,5 +1831,162 @@ h1, h2, h3, h4 {
 
     .finanzas__amount {
         font-size: 1.5rem;
+    }
+}
+
+/* ===== CATÁLOGO ===== */
+.catalogo {
+    padding: 100px 0;
+    background: var(--white);
+}
+
+.catalogo__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.catalogo__item {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    aspect-ratio: 1;
+}
+
+.catalogo__item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition);
+}
+
+.catalogo__item:hover img {
+    transform: scale(1.05);
+}
+
+.catalogo__placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--cream);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--gray-600);
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--radius-md);
+}
+
+.catalogo__placeholder p {
+    font-size: 0.85rem;
+}
+
+/* ===== COMING SOON (Blog, Testimonios) ===== */
+.blog-section,
+.testimonios {
+    padding: 100px 0;
+}
+
+.blog-section {
+    background: var(--cream);
+}
+
+.testimonios {
+    background: var(--white);
+}
+
+.coming-soon {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--gray-100);
+    border-radius: var(--radius-lg);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.coming-soon__icon {
+    color: var(--purple);
+    margin-bottom: 16px;
+}
+
+.coming-soon h3 {
+    font-size: 1.5rem;
+    color: var(--gray-900);
+    margin-bottom: 12px;
+}
+
+.coming-soon p {
+    color: var(--gray-600);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* ===== ADMIN TABS ===== */
+.admin-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-tab {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: var(--gray-600);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    transition: all var(--transition);
+}
+
+.admin-tab:hover {
+    color: var(--gray-800);
+    background: rgba(255,255,255,0.5);
+}
+
+.admin-tab--active {
+    background: var(--white);
+    color: var(--purple);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-panel {
+    display: none;
+}
+
+.admin-panel--active {
+    display: block;
+}
+
+.admin-panel__placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--gray-100);
+    border-radius: var(--radius-md);
+    color: var(--gray-600);
+}
+
+.admin-panel__placeholder h3 {
+    margin-bottom: 8px;
+    color: var(--gray-800);
+}
+
+@media (max-width: 600px) {
+    .admin-tabs {
+        flex-wrap: nowrap;
+        gap: 2px;
+    }
+    .admin-tab {
+        padding: 8px 12px;
+        font-size: 0.75rem;
     }
 }
