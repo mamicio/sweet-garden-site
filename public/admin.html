@@ -17,7 +17,7 @@
     <nav class="navbar">
         <div class="container navbar__inner">
             <a href="/" class="navbar__logo">
-                <img src="/img/logos/blanco-principal-header.png" alt="Sweet Garden" class="navbar__logo-img">
+                <img src="/img/logos/principal-header.png" alt="Sweet Garden" class="navbar__logo-img">
             </a>
             <ul class="navbar__menu">
                 <li><a href="/" class="navbar__link">Volver al sitio</a></li>
@@ -61,14 +61,107 @@
 
                 <!-- Tab Navigation -->
                 <div class="admin-tabs" id="adminTabs">
-                    <button class="admin-tab admin-tab--active" data-tab="consentimiento">Consentimiento</button>
+                    <button class="admin-tab admin-tab--active" data-tab="agenda">Agenda</button>
+                    <button class="admin-tab" data-tab="consentimiento">Consentimiento</button>
                     <button class="admin-tab" data-tab="finanzas">Finanzas</button>
                     <button class="admin-tab" data-tab="ingresos">Ingresos</button>
                     <button class="admin-tab" data-tab="egresos">Egresos</button>
                 </div>
 
+                <!-- ===== Tab: Agenda ===== -->
+                <div id="panelAgenda" class="admin-panel admin-panel--active">
+                    <div class="agenda-admin">
+                        <!-- Step 1: Select plan type -->
+                        <div class="agenda-step" id="agendaStep1">
+                            <h3 class="agenda-step__title">Tipo de reserva</h3>
+                            <div class="agenda-plan-grid">
+                                <button class="agenda-plan-btn" data-plan="flash">
+                                    <span class="agenda-plan-btn__badge agenda-plan-btn__badge--flash">Flash</span>
+                                    <h4>Sesión de 2 horas</h4>
+                                    <p>Salas 4A y 4B</p>
+                                    <span class="agenda-plan-btn__price">$120.000</span>
+                                </button>
+                                <button class="agenda-plan-btn" data-plan="plus">
+                                    <span class="agenda-plan-btn__badge agenda-plan-btn__badge--plus">Plus</span>
+                                    <h4>Jornada completa</h4>
+                                    <p>Salas 1, 2 y 3</p>
+                                    <span class="agenda-plan-btn__price">$320.000</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Select date -->
+                        <div class="agenda-step agenda-step--hidden" id="agendaStep2">
+                            <button class="booking-back" id="agendaBack1">← Cambiar plan</button>
+                            <h3 class="agenda-step__title">Selecciona una fecha</h3>
+                            <p class="agenda-step__subtitle" id="agendaPlanLabel"></p>
+                            <div class="booking-date-picker">
+                                <input type="date" id="agendaDate" class="booking-date-input">
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Select slot -->
+                        <div class="agenda-step agenda-step--hidden" id="agendaStep3">
+                            <button class="booking-back" id="agendaBack2">← Cambiar fecha</button>
+                            <h3 class="agenda-step__title">Horarios disponibles</h3>
+                            <p class="agenda-step__subtitle" id="agendaDateDisplay"></p>
+                            <div id="agendaSlotsLoading" class="booking-loading agenda-step--hidden">
+                                <div class="booking-spinner"></div>
+                                <p>Consultando disponibilidad...</p>
+                            </div>
+                            <div id="agendaSlotsError" class="booking-error agenda-step--hidden"></div>
+                            <div id="agendaSlotsContainer" class="slots-grid"></div>
+                        </div>
+
+                        <!-- Step 4: Booking form -->
+                        <div class="agenda-step agenda-step--hidden" id="agendaStep4">
+                            <button class="booking-back" id="agendaBack3">← Cambiar horario</button>
+                            <h3 class="agenda-step__title">Datos de la reserva</h3>
+                            <div id="agendaSummary" class="booking-summary"></div>
+                            <form id="agendaForm" class="booking-form">
+                                <div class="booking-field">
+                                    <label>Tipo <span>*</span></label>
+                                    <select id="agendaBookingType" required>
+                                        <option value="artist">Artista</option>
+                                        <option value="client">Cliente</option>
+                                    </select>
+                                </div>
+                                <div class="booking-field">
+                                    <label>Nombre <span>*</span></label>
+                                    <input type="text" id="agendaName" required minlength="2" placeholder="Nombre completo">
+                                </div>
+                                <div class="booking-field">
+                                    <label>Email <span>*</span></label>
+                                    <input type="email" id="agendaEmail" required placeholder="correo@ejemplo.com">
+                                </div>
+                                <div class="booking-field">
+                                    <label>Teléfono <span>*</span></label>
+                                    <input type="tel" id="agendaPhone" required minlength="7" placeholder="300 123 4567">
+                                </div>
+                                <div class="booking-field">
+                                    <label>Notas</label>
+                                    <textarea id="agendaNotes" rows="2" placeholder="Información adicional (opcional)"></textarea>
+                                </div>
+                                <button type="submit" id="agendaSubmit" class="btn btn--primary" style="width:100%;">Confirmar reserva</button>
+                            </form>
+                        </div>
+
+                        <!-- Step 5: Confirmation -->
+                        <div class="agenda-step agenda-step--hidden" id="agendaStep5">
+                            <div class="booking-confirmation">
+                                <div class="booking-confirmation__icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                </div>
+                                <h3>¡Reserva creada!</h3>
+                                <div id="agendaConfirmation" class="booking-confirmation__details"></div>
+                                <button id="agendaReset" class="btn btn--outline">Nueva reserva</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ===== Tab: Consentimiento ===== -->
-                <div id="panelConsentimiento" class="admin-panel admin-panel--active">
+                <div id="panelConsentimiento" class="admin-panel">
                     <div class="admin-panel__placeholder">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                         <h3>Consentimiento Informado</h3>

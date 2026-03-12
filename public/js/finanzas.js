@@ -19,7 +19,7 @@
     const totalIngresosEl = document.getElementById('totalIngresos');
     const totalEgresosEl = document.getElementById('totalEgresos');
     const flujoCajaEl = document.getElementById('flujoCaja');
-    let activeTab = 'consentimiento';
+    let activeTab = 'agenda';
 
     // State
     let currentUser = null;
@@ -664,5 +664,198 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    // ====== Agenda Module ======
+
+    const PLAN_LABELS = { flash: 'Flash — 2 horas', plus: 'Plus — Jornada completa' };
+    const PLAN_PRICES = { flash: '$120.000', plus: '$320.000' };
+    const PLAN_ROOMS = { flash: 'Salas 4A y 4B', plus: 'Salas 1, 2 y 3' };
+
+    const agenda = {
+        plan: null,
+        date: null,
+        slot: null
+    };
+
+    function initAgenda() {
+        // Plan buttons
+        document.querySelectorAll('.agenda-plan-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                agenda.plan = btn.dataset.plan;
+                document.getElementById('agendaPlanLabel').textContent =
+                    `${PLAN_LABELS[agenda.plan]} — ${PLAN_ROOMS[agenda.plan]}`;
+                agendaGoToStep(2);
+                setAgendaMinDate();
+            });
+        });
+
+        // Date input
+        const dateInput = document.getElementById('agendaDate');
+        if (dateInput) {
+            dateInput.addEventListener('change', () => {
+                if (dateInput.value) {
+                    agenda.date = dateInput.value;
+                    agendaGoToStep(3);
+                    loadAgendaSlots();
+                }
+            });
+        }
+
+        // Back buttons
+        document.getElementById('agendaBack1').addEventListener('click', () => agendaGoToStep(1));
+        document.getElementById('agendaBack2').addEventListener('click', () => agendaGoToStep(2));
+        document.getElementById('agendaBack3').addEventListener('click', () => agendaGoToStep(3));
+
+        // Form
+        const form = document.getElementById('agendaForm');
+        if (form) form.addEventListener('submit', (e) => { e.preventDefault(); submitAgenda(); });
+
+        // Reset
+        const resetBtn = document.getElementById('agendaReset');
+        if (resetBtn) resetBtn.addEventListener('click', resetAgenda);
+    }
+
+    function setAgendaMinDate() {
+        const dateInput = document.getElementById('agendaDate');
+        if (dateInput) {
+            const now = new Date();
+            dateInput.min = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            dateInput.value = '';
+        }
+    }
+
+    function agendaGoToStep(step) {
+        document.querySelectorAll('.agenda-step').forEach(el => el.classList.add('agenda-step--hidden'));
+        const target = document.getElementById(`agendaStep${step}`);
+        if (target) target.classList.remove('agenda-step--hidden');
+
+        if (step === 3) {
+            const d = new Date(agenda.date + 'T12:00:00');
+            document.getElementById('agendaDateDisplay').textContent =
+                d.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        if (step === 4) updateAgendaSummary();
+    }
+
+    function updateAgendaSummary() {
+        const el = document.getElementById('agendaSummary');
+        if (!el) return;
+        const d = new Date(agenda.date + 'T12:00:00');
+        const dateStr = d.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        el.innerHTML = `
+            <div class="booking-summary__item"><strong>Plan:</strong> ${PLAN_LABELS[agenda.plan]} (${PLAN_PRICES[agenda.plan]})</div>
+            <div class="booking-summary__item"><strong>Fecha:</strong> ${dateStr}</div>
+            <div class="booking-summary__item"><strong>Horario:</strong> ${agenda.slot.start} — ${agenda.slot.end}</div>
+            ${agenda.slot.room ? `<div class="booking-summary__item"><strong>Sala:</strong> ${agenda.slot.room}</div>` : ''}
+        `;
+    }
+
+    async function loadAgendaSlots() {
+        const container = document.getElementById('agendaSlotsContainer');
+        const loading = document.getElementById('agendaSlotsLoading');
+        const errorEl = document.getElementById('agendaSlotsError');
+
+        container.innerHTML = '';
+        loading.classList.remove('agenda-step--hidden');
+        errorEl.classList.add('agenda-step--hidden');
+
+        try {
+            const res = await fetch(`/api/availability?date=${agenda.date}&plan=${agenda.plan}`);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al consultar disponibilidad');
+            }
+
+            const slots = await res.json();
+            loading.classList.add('agenda-step--hidden');
+
+            if (slots.length === 0) {
+                errorEl.textContent = 'No hay disponibilidad para esta fecha. Intenta otro día.';
+                errorEl.classList.remove('agenda-step--hidden');
+                return;
+            }
+
+            slots.forEach(slot => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'slot-btn';
+                btn.innerHTML = `
+                    <span class="slot-btn__time">${slot.start}</span>
+                    <span class="slot-btn__separator">—</span>
+                    <span class="slot-btn__time">${slot.end}</span>
+                    ${slot.room ? `<span class="slot-btn__room">${slot.room}</span>` : ''}
+                `;
+                btn.addEventListener('click', () => {
+                    container.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('slot-btn--selected'));
+                    btn.classList.add('slot-btn--selected');
+                    agenda.slot = slot;
+                    setTimeout(() => agendaGoToStep(4), 250);
+                });
+                container.appendChild(btn);
+            });
+        } catch (err) {
+            loading.classList.add('agenda-step--hidden');
+            errorEl.textContent = err.message || 'Error de conexión';
+            errorEl.classList.remove('agenda-step--hidden');
+        }
+    }
+
+    async function submitAgenda() {
+        const submitBtn = document.getElementById('agendaSubmit');
+        const origText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Reservando...';
+
+        const data = {
+            bookingType: document.getElementById('agendaBookingType').value,
+            planType: agenda.plan,
+            date: agenda.date,
+            slot: { start: agenda.slot.start, end: agenda.slot.end },
+            name: document.getElementById('agendaName').value.trim(),
+            email: document.getElementById('agendaEmail').value.trim(),
+            phone: document.getElementById('agendaPhone').value.trim(),
+            notes: document.getElementById('agendaNotes').value.trim()
+        };
+
+        try {
+            const res = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+            if (!res.ok) {
+                const msg = result.errors ? result.errors.join(', ') : result.error;
+                throw new Error(msg || 'Error al crear la reserva');
+            }
+
+            // Show confirmation
+            const details = document.getElementById('agendaConfirmation');
+            const d = new Date(data.date + 'T12:00:00');
+            const dateStr = d.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            details.innerHTML = `
+                <p><strong>${escapeHtml(data.name)}</strong></p>
+                <p>${PLAN_LABELS[data.planType]} — ${dateStr}</p>
+                <p>${data.slot.start} — ${data.slot.end}</p>
+                ${result.booking && result.booking.room ? `<p>Sala asignada: <strong>${escapeHtml(result.booking.room)}</strong></p>` : ''}
+            `;
+            agendaGoToStep(5);
+        } catch (err) {
+            alert(err.message || 'Error al crear la reserva.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = origText;
+        }
+    }
+
+    function resetAgenda() {
+        agenda.plan = null;
+        agenda.date = null;
+        agenda.slot = null;
+        document.getElementById('agendaForm').reset();
+        document.getElementById('agendaDate').value = '';
+        document.getElementById('agendaSlotsContainer').innerHTML = '';
+        agendaGoToStep(1);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { init(); initAgenda(); });
 })();
