@@ -29,8 +29,6 @@
         ingresos: { headers: [], rows: [], currencyColumns: [] },
         egresos: { headers: [], rows: [], currencyColumns: [] }
     };
-    const pendingSaves = new Map();
-    const SAVE_DEBOUNCE_MS = 800;
 
     // ====== Init ======
 
@@ -51,8 +49,6 @@
         googleLoginBtn.addEventListener('click', handleGoogleLogin);
         logoutBtn.addEventListener('click', handleLogout);
         loadBtn.addEventListener('click', loadFinanzas);
-        document.getElementById('addRowIngresos').addEventListener('click', () => addNewRow('ingresos'));
-        document.getElementById('addRowEgresos').addEventListener('click', () => addNewRow('egresos'));
 
         // Tab navigation
         document.getElementById('adminTabs').addEventListener('click', (e) => {
@@ -365,7 +361,7 @@
             numTd.title = `Fila ${rowData.rowIndex} en la hoja`;
             tr.appendChild(numTd);
 
-            // Data cells (editable)
+            // Data cells (read-only)
             rowData.cells.forEach((cellValue, colIndex) => {
                 const td = document.createElement('td');
                 const isCurrency = currencyColumns.includes(colIndex);
@@ -373,20 +369,9 @@
                 if (isCurrency && cellValue) {
                     const numVal = parseCurrencyClient(cellValue);
                     td.textContent = numVal !== 0 ? formatCurrency(numVal) : cellValue;
-                    td.dataset.rawValue = cellValue;
                 } else {
                     td.textContent = cellValue;
                 }
-
-                td.contentEditable = 'true';
-                td.dataset.sheetType = sheetType;
-                td.dataset.rowIndex = rowData.rowIndex;
-                td.dataset.colIndex = colIndex;
-                td.dataset.isCurrency = isCurrency;
-
-                td.addEventListener('focus', handleCellFocus);
-                td.addEventListener('blur', handleCellBlur);
-                td.addEventListener('keydown', handleCellKeydown);
 
                 tr.appendChild(td);
             });
@@ -395,214 +380,6 @@
         });
     }
 
-    // ====== Cell Editing ======
-
-    function handleCellFocus(e) {
-        const td = e.target;
-        // Show raw value for currency cells
-        if (td.dataset.isCurrency === 'true' && td.dataset.rawValue !== undefined) {
-            td.textContent = td.dataset.rawValue;
-        }
-        td.dataset.originalValue = td.textContent;
-
-        // Select all text
-        const range = document.createRange();
-        range.selectNodeContents(td);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-    }
-
-    function handleCellBlur(e) {
-        const td = e.target;
-        const newValue = td.textContent.trim();
-        const originalValue = td.dataset.originalValue || '';
-        const isCurrency = td.dataset.isCurrency === 'true';
-
-        // Re-format currency for display
-        if (isCurrency) {
-            td.dataset.rawValue = newValue;
-            const numVal = parseCurrencyClient(newValue);
-            td.textContent = numVal !== 0 ? formatCurrency(numVal) : newValue;
-        }
-
-        // Only save if changed
-        if (newValue !== originalValue) {
-            debounceSave(td, newValue);
-        }
-    }
-
-    function handleCellKeydown(e) {
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const next = e.shiftKey ? getPrevCell(e.target) : getNextCell(e.target);
-            if (next) next.focus();
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            const below = getCellBelow(e.target);
-            if (below) below.focus();
-            else e.target.blur();
-        } else if (e.key === 'Escape') {
-            e.target.textContent = e.target.dataset.originalValue || '';
-            e.target.blur();
-        }
-    }
-
-    // ====== Cell Navigation ======
-
-    function getNextCell(td) {
-        let next = td.nextElementSibling;
-        if (next && !next.hasAttribute('contenteditable')) next = next.nextElementSibling;
-        if (next) return next;
-        const nextRow = td.parentElement.nextElementSibling;
-        return nextRow ? nextRow.querySelector('td[contenteditable]') : null;
-    }
-
-    function getPrevCell(td) {
-        let prev = td.previousElementSibling;
-        if (prev && !prev.hasAttribute('contenteditable')) prev = prev.previousElementSibling;
-        if (prev) return prev;
-        const prevRow = td.parentElement.previousElementSibling;
-        if (prevRow) {
-            const cells = prevRow.querySelectorAll('td[contenteditable]');
-            return cells.length ? cells[cells.length - 1] : null;
-        }
-        return null;
-    }
-
-    function getCellBelow(td) {
-        const colPos = Array.from(td.parentElement.children).indexOf(td);
-        const nextRow = td.parentElement.nextElementSibling;
-        return (nextRow && nextRow.children[colPos]) ? nextRow.children[colPos] : null;
-    }
-
-    // ====== Auto-Save ======
-
-    function debounceSave(td, value) {
-        const key = `${td.dataset.sheetType}-${td.dataset.rowIndex}-${td.dataset.colIndex}`;
-
-        if (pendingSaves.has(key)) {
-            clearTimeout(pendingSaves.get(key).timeout);
-        }
-
-        td.classList.add('finanzas__cell--saving');
-        updateSaveStatus(td.dataset.sheetType, 'Guardando...');
-
-        const timeout = setTimeout(() => executeSave(td, key, value), SAVE_DEBOUNCE_MS);
-        pendingSaves.set(key, { timeout });
-    }
-
-    async function executeSave(td, key, value) {
-        try {
-            const response = await fetch('/api/finanzas/cell', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentUser.token}`
-                },
-                body: JSON.stringify({
-                    sheetType: td.dataset.sheetType,
-                    rowIndex: parseInt(td.dataset.rowIndex),
-                    colIndex: parseInt(td.dataset.colIndex),
-                    value: value
-                })
-            });
-
-            if (response.status === 401 || response.status === 403) {
-                handleLogout();
-                alert('Sesión expirada.');
-                return;
-            }
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Error al guardar');
-            }
-
-            td.classList.remove('finanzas__cell--saving');
-            td.classList.add('finanzas__cell--saved');
-            setTimeout(() => td.classList.remove('finanzas__cell--saved'), 600);
-            updateSaveStatus(td.dataset.sheetType, 'Guardado');
-            setTimeout(() => updateSaveStatus(td.dataset.sheetType, ''), 2000);
-        } catch (err) {
-            console.error('Save error:', err);
-            td.classList.remove('finanzas__cell--saving');
-            td.classList.add('finanzas__cell--error');
-            updateSaveStatus(td.dataset.sheetType, `Error: ${err.message}`, true);
-            setTimeout(() => td.classList.remove('finanzas__cell--error'), 3000);
-        } finally {
-            pendingSaves.delete(key);
-        }
-    }
-
-    function updateSaveStatus(sheetType, message, isError) {
-        const el = document.getElementById(sheetType === 'ingresos' ? 'ingresosStatus' : 'egresosStatus');
-        el.textContent = message;
-        el.className = 'finanzas__save-status' +
-            (isError ? ' finanzas__save-status--error' : message ? ' finanzas__save-status--saving' : '');
-    }
-
-    // ====== Add New Row ======
-
-    async function addNewRow(sheetType) {
-        const data = sheetData[sheetType];
-        if (!data.headers.length) {
-            showError('Carga los datos primero con "Consultar"');
-            return;
-        }
-
-        const year = yearSelect.value;
-        const month = monthSelect.value;
-
-        // Find year/month columns to pre-fill
-        const headers = data.headers;
-        const yearCol = headers.findIndex(h => h && h.toString().toLowerCase().trim() === 'año');
-        const monthCol = headers.findIndex(h => h && h.toString().toLowerCase().trim() === 'mes');
-
-        const cells = Array(headers.length).fill('');
-        if (yearCol !== -1) cells[yearCol] = year;
-        if (monthCol !== -1) cells[monthCol] = month;
-
-        try {
-            updateSaveStatus(sheetType, 'Agregando fila...');
-
-            const response = await fetch('/api/finanzas/row', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentUser.token}`
-                },
-                body: JSON.stringify({ sheetType, cells })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Error al agregar fila');
-            }
-
-            const result = await response.json();
-
-            // Add to local state and re-render
-            data.rows.push({ rowIndex: result.rowIndex, cells });
-            renderSpreadsheet(sheetType, data);
-
-            updateSaveStatus(sheetType, 'Fila agregada');
-            setTimeout(() => updateSaveStatus(sheetType, ''), 2000);
-
-            // Scroll to bottom and focus first editable cell
-            const tableEl = document.getElementById(sheetType === 'ingresos' ? 'tablaIngresos' : 'tablaEgresos');
-            const wrapper = tableEl.closest('.finanzas__table-wrapper--spreadsheet');
-            wrapper.scrollTop = wrapper.scrollHeight;
-
-            const tbody = tableEl.querySelector('tbody');
-            const lastRow = tbody.lastElementChild;
-            const firstEditable = lastRow && lastRow.querySelector('td[contenteditable]');
-            if (firstEditable) firstEditable.focus();
-        } catch (err) {
-            console.error('Add row error:', err);
-            updateSaveStatus(sheetType, `Error: ${err.message}`, true);
-        }
-    }
 
     // ====== Helpers ======
 

@@ -17,7 +17,7 @@ function getSheetsClient() {
 
     const auth = new google.auth.GoogleAuth({
         credentials,
-        scopes: ['https://www.googleapis.com/auth/spreadsheets']
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
     });
 
     sheets = google.sheets({ version: 'v4', auth });
