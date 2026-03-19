@@ -634,5 +634,17 @@
         agendaGoToStep(1);
     }
 
-    document.addEventListener('DOMContentLoaded', () => { init(); initAgenda(); });
+    // ====== Mobile Nav Toggle ======
+    function initMobileNav() {
+        const toggle = document.getElementById('adminNavToggle');
+        const menu = document.getElementById('adminNavMenu');
+        if (toggle && menu) {
+            toggle.addEventListener('click', () => {
+                toggle.classList.toggle('active');
+                menu.classList.toggle('active');
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { initMobileNav(); init(); initAgenda(); });
 })();
