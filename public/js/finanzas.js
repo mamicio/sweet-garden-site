@@ -108,6 +108,10 @@
         }
     }
 
+    function isMobile() {
+        return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent);
+    }
+
     function openOAuthPopup() {
         const redirectUri = window.location.origin + '/auth/callback';
         const scope = 'openid email profile';
@@ -118,10 +122,17 @@
             `&scope=${encodeURIComponent(scope)}` +
             `&access_type=online`;
 
+        // On mobile, use full redirect instead of popup
+        if (isMobile()) {
+            window.location.href = authUrl;
+            return;
+        }
+
         const popup = window.open(authUrl, 'GoogleAuth', 'width=500,height=600,menubar=no,toolbar=no');
 
         if (!popup) {
-            alert('Por favor permite las ventanas emergentes para iniciar sesión con Google.');
+            // Fallback: redirect if popup blocked
+            window.location.href = authUrl;
             return;
         }
 
