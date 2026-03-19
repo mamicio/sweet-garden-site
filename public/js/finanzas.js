@@ -57,6 +57,17 @@
             switchTab(tab.dataset.tab);
         });
 
+        // Check for token in URL fragment (from mobile OAuth redirect)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const tokenFromUrl = hashParams.get('token');
+        if (tokenFromUrl) {
+            // Clean the URL
+            history.replaceState(null, '', '/admin');
+            localStorage.setItem('finanzas_session', tokenFromUrl);
+            verifySession(tokenFromUrl);
+            return;
+        }
+
         const savedSession = localStorage.getItem('finanzas_session');
         if (savedSession) {
             verifySession(savedSession);

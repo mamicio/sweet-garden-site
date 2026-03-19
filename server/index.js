@@ -86,11 +86,8 @@ app.get('/auth/callback', async (req, res) => {
         // Create our own short-lived JWT — this is what the client stores
         const sessionToken = createSessionToken(user);
 
-        return res.send(renderCallbackPage({
-            sessionToken,
-            email: user.email,
-            name: user.name
-        }));
+        // Redirect to admin with token in URL fragment (never sent to server)
+        return res.redirect(`/admin#token=${encodeURIComponent(sessionToken)}`);
     } catch (err) {
         console.error('OAuth code exchange failed:', err.message);
         return res.send(renderCallbackPage({ error: 'Error de autenticación. Intenta de nuevo.' }));
