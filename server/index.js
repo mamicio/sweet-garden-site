@@ -15,6 +15,9 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy (Render runs behind a reverse proxy)
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet({
     contentSecurityPolicy: {
@@ -104,13 +107,20 @@ function renderCallbackPage({ sessionToken, email, name, error }) {
 <html lang="es"><head><meta charset="UTF-8"><title>Autenticando...</title>
 <style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-align:center;padding:1rem;}.msg{font-size:1.1rem;}</style>
 </head><body>
-<p class="msg">${success ? 'Autenticación exitosa. Cerrando...' : 'Error de autenticación'}</p>
+<p class="msg">${success ? 'Autenticación exitosa. Redirigiendo...' : 'Error de autenticación'}</p>
 <script>
 (function(){
+    var data = ${JSON.stringify(data)};
     if(window.opener){
-        window.opener.postMessage(${JSON.stringify(data)},window.location.origin);
+        window.opener.postMessage(data, window.location.origin);
+        setTimeout(function(){ window.close(); }, 500);
+    } else {
+        ${success
+            ? `localStorage.setItem('finanzas_session', data.session_token);
+               window.location.href = '/admin';`
+            : `setTimeout(function(){ window.location.href = '/admin'; }, 3000);`
+        }
     }
-    setTimeout(function(){window.close();},${success ? 500 : 3000});
 })();
 </script>
 </body></html>`;
