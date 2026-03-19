@@ -97,6 +97,12 @@
         }
         if (currentUser) return;
 
+        // On mobile, skip One Tap and go straight to redirect
+        if (isMobile()) {
+            openOAuthPopup();
+            return;
+        }
+
         if (window.google && window.google.accounts && googleInitialized) {
             google.accounts.id.prompt((notification) => {
                 if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
