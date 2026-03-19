@@ -23,8 +23,6 @@
 
     // State
     let currentUser = null;
-    let googleClientId = null;
-    let googleInitialized = false;
     let sheetData = {
         ingresos: { headers: [], rows: [], currencyColumns: [] },
         egresos: { headers: [], rows: [], currencyColumns: [] }
@@ -37,16 +35,6 @@
         monthSelect.value = now.getMonth() + 1;
         yearSelect.value = now.getFullYear();
 
-        try {
-            const response = await fetch('/api/auth/config');
-            const config = await response.json();
-            googleClientId = config.clientId;
-            tryInitGoogle();
-        } catch (err) {
-            console.error('Failed to get auth config:', err);
-        }
-
-        googleLoginBtn.addEventListener('click', handleGoogleLogin);
         logoutBtn.addEventListener('click', handleLogout);
         loadBtn.addEventListener('click', loadFinanzas);
 
@@ -57,11 +45,10 @@
             switchTab(tab.dataset.tab);
         });
 
-        // Check for token in URL fragment (from mobile OAuth redirect)
+        // Check for token in URL fragment (from OAuth redirect)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const tokenFromUrl = hashParams.get('token');
         if (tokenFromUrl) {
-            // Clean the URL
             history.replaceState(null, '', '/admin');
             localStorage.setItem('finanzas_session', tokenFromUrl);
             verifySession(tokenFromUrl);
@@ -74,154 +61,10 @@
         }
     }
 
-    // ====== Google Auth (unchanged) ======
-
-    function tryInitGoogle() {
-        if (!googleClientId) return;
-        const checkInterval = setInterval(() => {
-            if (window.google && window.google.accounts) {
-                clearInterval(checkInterval);
-                initGoogleSignIn();
-            }
-        }, 100);
-        setTimeout(() => clearInterval(checkInterval), 10000);
-    }
-
-    function initGoogleSignIn() {
-        if (!googleClientId || !window.google || googleInitialized) return;
-        try {
-            google.accounts.id.initialize({
-                client_id: googleClientId,
-                callback: handleCredentialResponse,
-                auto_select: false
-            });
-            googleInitialized = true;
-        } catch (err) {
-            console.error('Failed to initialize Google Sign-In:', err);
-        }
-    }
-
-    function handleGoogleLogin() {
-        if (!googleClientId) {
-            alert('Error de configuración. Por favor recarga la página.');
-            return;
-        }
-        if (currentUser) return;
-
-        // On mobile, skip One Tap and go straight to redirect
-        if (isMobile()) {
-            openOAuthPopup();
-            return;
-        }
-
-        if (window.google && window.google.accounts && googleInitialized) {
-            google.accounts.id.prompt((notification) => {
-                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    openOAuthPopup();
-                }
-            });
-        } else {
-            openOAuthPopup();
-        }
-    }
-
-    function isMobile() {
-        return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent);
-    }
-
-    function openOAuthPopup() {
-        const redirectUri = window.location.origin + '/auth/callback';
-        const scope = 'openid email profile';
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-            `client_id=${encodeURIComponent(googleClientId)}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&response_type=code` +
-            `&scope=${encodeURIComponent(scope)}` +
-            `&access_type=online`;
-
-        // On mobile, use full redirect instead of popup
-        if (isMobile()) {
-            window.location.href = authUrl;
-            return;
-        }
-
-        const popup = window.open(authUrl, 'GoogleAuth', 'width=500,height=600,menubar=no,toolbar=no');
-
-        if (!popup) {
-            // Fallback: redirect if popup blocked
-            window.location.href = authUrl;
-            return;
-        }
-
-        const messageHandler = (event) => {
-            if (event.origin !== window.location.origin) return;
-            if (event.data && event.data.type === 'google-auth') {
-                window.removeEventListener('message', messageHandler);
-
-                if (event.data.session_token) {
-                    currentUser = {
-                        email: event.data.email,
-                        name: event.data.name,
-                        token: event.data.session_token
-                    };
-                    localStorage.setItem('finanzas_session', event.data.session_token);
-                    showDashboard();
-                } else if (event.data.error === 'unauthorized') {
-                    showUnauthorizedMessage(event.data.email || 'desconocido');
-                } else if (event.data.error) {
-                    alert('Error de autenticación: ' + event.data.error);
-                }
-            }
-        };
-
-        window.addEventListener('message', messageHandler);
-
-        const checkClosed = setInterval(() => {
-            if (popup.closed) {
-                clearInterval(checkClosed);
-                window.removeEventListener('message', messageHandler);
-            }
-        }, 500);
-    }
-
-    async function handleCredentialResponse(response) {
-        await exchangeGoogleToken(response.credential);
-    }
-
-    async function exchangeGoogleToken(googleToken) {
-        try {
-            googleLoginBtn.textContent = 'Verificando...';
-            googleLoginBtn.disabled = true;
-
-            const response = await fetch('/api/auth/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: googleToken })
-            });
-
-            const data = await response.json();
-
-            if (data.authorized && data.sessionToken) {
-                currentUser = { email: data.email, name: data.name, token: data.sessionToken };
-                localStorage.setItem('finanzas_session', data.sessionToken);
-                showDashboard();
-            } else {
-                googleLoginBtn.textContent = 'Iniciar sesión con Google';
-                googleLoginBtn.disabled = false;
-                showUnauthorizedMessage(data.email || 'desconocido');
-            }
-        } catch (err) {
-            console.error('Token verification error:', err);
-            googleLoginBtn.textContent = 'Iniciar sesión con Google';
-            googleLoginBtn.disabled = false;
-        }
-    }
+    // ====== Auth ======
 
     async function verifySession(sessionToken) {
         try {
-            googleLoginBtn.textContent = 'Verificando...';
-            googleLoginBtn.disabled = true;
-
             const response = await fetch('/api/auth/session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -235,13 +78,9 @@
                 showDashboard();
             } else {
                 localStorage.removeItem('finanzas_session');
-                googleLoginBtn.textContent = 'Iniciar sesión con Google';
-                googleLoginBtn.disabled = false;
             }
         } catch (err) {
             localStorage.removeItem('finanzas_session');
-            googleLoginBtn.textContent = 'Iniciar sesión con Google';
-            googleLoginBtn.disabled = false;
         }
     }
 
@@ -255,16 +94,9 @@
     function handleLogout() {
         currentUser = null;
         localStorage.removeItem('finanzas_session');
-
-        if (window.google && window.google.accounts) {
-            google.accounts.id.disableAutoSelect();
-        }
-
         dashboardView.style.display = 'none';
         loginView.style.display = '';
         navLogoutItem.style.display = 'none';
-        googleLoginBtn.textContent = 'Iniciar sesión con Google';
-        googleLoginBtn.disabled = false;
         resumenEl.classList.add('finanzas--hidden');
     }
 

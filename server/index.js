@@ -49,6 +49,21 @@ app.use(express.json());
 // API routes
 app.use('/api', apiRoutes);
 
+// Simple login redirect — no client-side JS needed
+app.get('/auth/login', (req, res) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+    const scope = 'openid email profile';
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${encodeURIComponent(clientId)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=code` +
+        `&scope=${encodeURIComponent(scope)}` +
+        `&access_type=online` +
+        `&prompt=select_account`;
+    res.redirect(authUrl);
+});
+
 // OAuth callback — exchanges authorization code server-side (tokens never reach the browser URL)
 app.get('/auth/callback', async (req, res) => {
     const { code, error } = req.query;
