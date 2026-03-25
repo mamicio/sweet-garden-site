@@ -1154,57 +1154,51 @@
 
             loadingEl.classList.add('finanzas--hidden');
 
-            // Filter out hidden columns for display
+            // Localizar columnas Año / Mes / Día para combinarlas en Fecha
+            const iAnio = data.headers.findIndex(h => h.toLowerCase().trim() === 'año');
+            const iMes  = data.headers.findIndex(h => h.toLowerCase().trim() === 'mes');
+            const iDia  = data.headers.findIndex(h => h.toLowerCase().trim() === 'día' || h.toLowerCase().trim() === 'dia');
+            const dateCols = new Set([iAnio, iMes, iDia].filter(i => i !== -1));
+
+            // Filter out hidden columns AND the separate date columns
             const visibleIdx = data.headers
                 .map((h, i) => ({ h, i }))
-                .filter(({ h }) => !isHiddenCol(h.toLowerCase().trim()) && h.toLowerCase().trim() !== 'año' && h.toLowerCase().trim() !== 'mes')
+                .filter(({ h, i }) => !isHiddenCol(h.toLowerCase().trim()) && !dateCols.has(i))
                 .map(({ i }) => i);
 
-            // Header row
-            thead.innerHTML = '<th>#</th>' + visibleIdx.map(i => `<th>${escapeHtml(data.headers[i])}</th>`).join('');
+            // Header row: Fecha first, then the rest
+            const hasDateCols = dateCols.size > 0;
+            const fechaHeader = hasDateCols ? '<th>Fecha</th>' : '';
+            thead.innerHTML = '<th>#</th>' + fechaHeader + visibleIdx.map(i => `<th>${escapeHtml(data.headers[i])}</th>`).join('');
 
             if (!data.rows || data.rows.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${visibleIdx.length + 1}" style="text-align:center;color:var(--gray-600);padding:20px;">Sin ventas registradas en este período</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${visibleIdx.length + (hasDateCols ? 2 : 1)}" style="text-align:center;color:var(--gray-600);padding:20px;">Sin ventas registradas en este período</td></tr>`;
                 return;
             }
-
-            // Detectar índice de columna Fecha (para formatear)
-            const fechaColIdx = data.headers.findIndex(h => h.toLowerCase().trim() === 'fecha');
 
             data.rows.forEach((row, idx) => {
                 const tr = document.createElement('tr');
                 let cells = `<td>${idx + 1}</td>`;
+
+                // Columna Fecha combinada (Año/Mes/Día)
+                if (hasDateCols) {
+                    const anio = (iAnio !== -1 ? row.cells[iAnio] : '') || '';
+                    const mes  = (iMes  !== -1 ? row.cells[iMes]  : '') || '';
+                    const dia  = (iDia  !== -1 ? row.cells[iDia]  : '') || '';
+                    let fechaDisplay = '';
+                    if (anio || mes || dia) {
+                        const yy = String(anio).padStart(4, '0');
+                        const mm = String(mes).padStart(2, '0');
+                        const dd = String(dia).padStart(2, '0');
+                        fechaDisplay = `${yy}/${mm}/${dd}`;
+                    }
+                    cells += `<td>${escapeHtml(fechaDisplay)}</td>`;
+                }
+
                 visibleIdx.forEach(i => {
                     const isCurrency = data.currencyColumns && data.currencyColumns.includes(i);
                     const val = row.cells[i] || '';
-                    let display;
-                    if (i === fechaColIdx && val) {
-                        // Normalizar a AAAA/MM/DD sin importar el formato origen
-                        const d = new Date(val);
-                        if (!isNaN(d.getTime())) {
-                            const yy = d.getFullYear();
-                            const mm = String(d.getMonth() + 1).padStart(2, '0');
-                            const dd = String(d.getDate()).padStart(2, '0');
-                            display = `${yy}/${mm}/${dd}`;
-                        } else {
-                            // Intentar extraer partes si el valor es texto tipo "2026-3-25" o "25/03/2026"
-                            const parts = val.split(/[-\/]/);
-                            if (parts.length === 3) {
-                                const [a, b, c] = parts.map(Number);
-                                // Si primer número es el año (>1000)
-                                const yy2 = a > 1000 ? a : c;
-                                const mm2 = a > 1000 ? String(b).padStart(2,'0') : String(b).padStart(2,'0');
-                                const dd2 = a > 1000 ? String(c).padStart(2,'0') : String(a).padStart(2,'0');
-                                display = `${yy2}/${mm2}/${dd2}`;
-                            } else {
-                                display = escapeHtml(val);
-                            }
-                        }
-                    } else if (isCurrency && val) {
-                        display = formatCurrency(parseCurrencyClient(val));
-                    } else {
-                        display = escapeHtml(val);
-                    }
+                    const display = isCurrency && val ? formatCurrency(parseCurrencyClient(val)) : escapeHtml(val);
                     cells += `<td>${display}</td>`;
                 });
                 tr.innerHTML = cells;
