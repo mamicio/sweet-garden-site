@@ -2423,8 +2423,14 @@ h1, h2, h3, h4 {
         align-items: flex-start;
         gap: 12px;
     }
+    .ingresos-header__left,
     .ingresos-header__right {
         width: 100%;
+        justify-content: center;
+    }
+    .ingresos-header__left h3 {
+        width: 100%;
+        text-align: center;
     }
     .mostrador-item {
         grid-template-columns: 1fr 60px 90px auto;
