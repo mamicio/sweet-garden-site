@@ -630,64 +630,160 @@
 
     const MOSTRADOR_PRODUCTS = ['Botella Aqua', 'Monster', 'Cerveza Pilsen'];
 
+    function buildMostradorRow(section, prod) {
+        const row = document.createElement('div');
+        row.className = 'mostrador-item';
+        row.dataset.product = prod;
+
+        const label = document.createElement('label');
+        label.className = 'mostrador-label';
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.className = 'mostrador-check';
+        label.appendChild(check);
+        label.appendChild(document.createTextNode(' ' + prod));
+
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number'; qtyInput.min = '0'; qtyInput.step = '1';
+        qtyInput.placeholder = 'Cant.'; qtyInput.disabled = true;
+        qtyInput.className = 'mostrador-qty';
+
+        const priceInput = document.createElement('input');
+        priceInput.type = 'number'; priceInput.min = '0'; priceInput.step = '1';
+        priceInput.placeholder = '$ Unit.'; priceInput.disabled = true;
+        priceInput.className = 'mostrador-price';
+
+        const subtotal = document.createElement('span');
+        subtotal.className = 'mostrador-subtotal';
+        subtotal.textContent = '$0';
+
+        // Remove button (only for custom items, not default ones)
+        const isDefault = MOSTRADOR_PRODUCTS.includes(prod);
+        if (!isDefault) {
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'mostrador-remove';
+            removeBtn.title = 'Eliminar';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => { row.remove(); updateMostradorTotals(); });
+            row.appendChild(removeBtn);
+        }
+
+        check.addEventListener('change', () => {
+            qtyInput.disabled = !check.checked;
+            priceInput.disabled = !check.checked;
+            if (!check.checked) { qtyInput.value = ''; priceInput.value = ''; }
+            updateMostradorTotals();
+        });
+        qtyInput.addEventListener('input', updateMostradorTotals);
+        priceInput.addEventListener('input', updateMostradorTotals);
+
+        row.appendChild(label);
+        row.appendChild(qtyInput);
+        row.appendChild(priceInput);
+        row.appendChild(subtotal);
+
+        // Insert before the grandTotal line
+        const gt = section.querySelector('.mostrador-grand-total');
+        section.insertBefore(row, gt);
+        return row;
+    }
+
     function buildMostradorSection() {
         const section = document.createElement('div');
         section.id = 'mostradorSection';
         section.className = 'mostrador-section';
         section.style.display = 'none';
 
+        // Header: title + search
+        const header = document.createElement('div');
+        header.className = 'mostrador-section__header';
+
         const title = document.createElement('p');
         title.className = 'mostrador-section__title';
         title.textContent = 'Detalle de productos';
-        section.appendChild(title);
+        header.appendChild(title);
 
-        MOSTRADOR_PRODUCTS.forEach(prod => {
-            const row = document.createElement('div');
-            row.className = 'mostrador-item';
-            row.dataset.product = prod;
-
-            const label = document.createElement('label');
-            label.className = 'mostrador-label';
-            const check = document.createElement('input');
-            check.type = 'checkbox';
-            check.className = 'mostrador-check';
-            label.appendChild(check);
-            label.appendChild(document.createTextNode(' ' + prod));
-
-            const qtyInput = document.createElement('input');
-            qtyInput.type = 'number'; qtyInput.min = '0'; qtyInput.step = '1';
-            qtyInput.placeholder = 'Cant.'; qtyInput.disabled = true;
-            qtyInput.className = 'mostrador-qty';
-
-            const priceInput = document.createElement('input');
-            priceInput.type = 'number'; priceInput.min = '0'; priceInput.step = '1';
-            priceInput.placeholder = '$ Unit.'; priceInput.disabled = true;
-            priceInput.className = 'mostrador-price';
-
-            const subtotal = document.createElement('span');
-            subtotal.className = 'mostrador-subtotal';
-            subtotal.textContent = '$0';
-
-            check.addEventListener('change', () => {
-                qtyInput.disabled = !check.checked;
-                priceInput.disabled = !check.checked;
-                if (!check.checked) { qtyInput.value = ''; priceInput.value = ''; }
-                updateMostradorTotals();
+        // Lupa / filter
+        const searchWrap = document.createElement('div');
+        searchWrap.className = 'mostrador-search-wrap';
+        const searchIcon = document.createElement('span');
+        searchIcon.className = 'mostrador-search-icon';
+        searchIcon.textContent = '🔍';
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'mostrador-search-input';
+        searchInput.placeholder = 'Filtrar productos...';
+        searchInput.addEventListener('input', () => {
+            const q = searchInput.value.toLowerCase().trim();
+            section.querySelectorAll('.mostrador-item').forEach(row => {
+                row.style.display = (!q || row.dataset.product.toLowerCase().includes(q)) ? '' : 'none';
             });
-            qtyInput.addEventListener('input', updateMostradorTotals);
-            priceInput.addEventListener('input', updateMostradorTotals);
-
-            row.appendChild(label);
-            row.appendChild(qtyInput);
-            row.appendChild(priceInput);
-            row.appendChild(subtotal);
-            section.appendChild(row);
         });
+        searchWrap.appendChild(searchIcon);
+        searchWrap.appendChild(searchInput);
+        header.appendChild(searchWrap);
+        section.appendChild(header);
 
+        // Grand total placeholder (needed before rows so insertBefore works)
         const grandTotal = document.createElement('div');
         grandTotal.id = 'mostradorGrandTotal';
         grandTotal.className = 'mostrador-grand-total';
         grandTotal.textContent = 'Total: $0';
+        section.appendChild(grandTotal);
+
+        // Default products
+        MOSTRADOR_PRODUCTS.forEach(prod => buildMostradorRow(section, prod));
+
+        // Add-product row
+        const addRow = document.createElement('div');
+        addRow.className = 'mostrador-add-row';
+
+        const addInput = document.createElement('input');
+        addInput.type = 'text';
+        addInput.className = 'mostrador-add-input';
+        addInput.placeholder = 'Nombre del producto...';
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'mostrador-add-btn';
+        addBtn.textContent = '+ Agregar';
+
+        const addFeedback = document.createElement('span');
+        addFeedback.className = 'mostrador-add-feedback';
+
+        addBtn.addEventListener('click', () => {
+            const name = addInput.value.trim();
+            if (!name) return;
+
+            // Check duplicate (case-insensitive)
+            const existing = [...section.querySelectorAll('.mostrador-item')]
+                .find(r => r.dataset.product.toLowerCase() === name.toLowerCase());
+
+            if (existing) {
+                addFeedback.textContent = '⚠ Ya existe';
+                addFeedback.style.color = '#e67e22';
+                // Highlight existing row briefly
+                existing.style.background = '#fff3cd';
+                setTimeout(() => { existing.style.background = ''; addFeedback.textContent = ''; }, 2000);
+                return;
+            }
+
+            buildMostradorRow(section, name);
+            addInput.value = '';
+            addFeedback.textContent = '✓ Agregado';
+            addFeedback.style.color = '#27ae60';
+            setTimeout(() => { addFeedback.textContent = ''; }, 1500);
+        });
+
+        addInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); } });
+
+        addRow.appendChild(addInput);
+        addRow.appendChild(addBtn);
+        addRow.appendChild(addFeedback);
+        section.appendChild(addRow);
+
+        // Move grand total to after the add row
         section.appendChild(grandTotal);
 
         return section;
