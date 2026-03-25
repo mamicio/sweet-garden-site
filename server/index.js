@@ -5,6 +5,7 @@ const path = require('path');
 const helmet = require('helmet');
 const cors = require('cors');
 const apiRoutes = require('./routes/api');
+const woRoutes  = require('./routes/wo');
 const {
     exchangeCode,
     verifyGoogleToken,
@@ -48,6 +49,7 @@ app.use(express.json());
 
 // API routes
 app.use('/api', apiRoutes);
+app.use('/api/wo', woRoutes);
 
 // Simple login redirect — no client-side JS needed
 app.get('/auth/login', (req, res) => {

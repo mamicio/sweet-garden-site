@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { bookingLimiter } = require('../middleware/rateLimit');
 const { getAvailableSlots, createBooking } = require('../services/calendarService');
-const { getFinanzasResumen, getFullSheet } = require('../services/sheetsService');
+const { getFinanzasResumen, getFullSheet, getAllRows, getSheetHeaders, insertRowAt2 } = require('../services/sheetsService');
 const {
     verifyGoogleToken,
     createSessionToken,
@@ -247,6 +247,55 @@ router.get('/finanzas/sheet/:type', requireAuth, async (req, res) => {
         res.json(data);
     } catch (err) {
         console.error(`Sheet read error (${req.params.type}):`, err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get all rows (for client ID lookup in forms)
+router.get('/finanzas/sheet/:type/all', requireAuth, async (req, res) => {
+    try {
+        const { type } = req.params;
+        if (!['ingresos', 'egresos'].includes(type)) {
+            return res.status(400).json({ error: 'Tipo inválido' });
+        }
+        const data = await getAllRows(type);
+        res.json(data);
+    } catch (err) {
+        console.error('getAllRows error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get sheet column headers only (for building dynamic forms)
+router.get('/finanzas/sheet/:type/headers', requireAuth, async (req, res) => {
+    try {
+        const { type } = req.params;
+        if (!['ingresos', 'egresos'].includes(type)) {
+            return res.status(400).json({ error: 'Tipo inválido' });
+        }
+        const data = await getSheetHeaders(type);
+        res.json(data);
+    } catch (err) {
+        console.error('Headers error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Append a new row to a sheet
+router.post('/finanzas/sheet/:type', requireAuth, async (req, res) => {
+    try {
+        const { type } = req.params;
+        if (!['ingresos', 'egresos'].includes(type)) {
+            return res.status(400).json({ error: 'Tipo inválido' });
+        }
+        const { values } = req.body;
+        if (!Array.isArray(values) || values.length === 0) {
+            return res.status(400).json({ error: 'values debe ser un array no vacío' });
+        }
+        const result = await insertRowAt2(type, values);
+        res.status(201).json({ success: true, ...result });
+    } catch (err) {
+        console.error('Append row error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });

@@ -17,7 +17,7 @@ function getSheetsClient() {
 
     const auth = new google.auth.GoogleAuth({
         credentials,
-        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+        scopes: ['https://www.googleapis.com/auth/spreadsheets']
     });
 
     sheets = google.sheets({ version: 'v4', auth });
@@ -243,10 +243,96 @@ async function getFinanzasResumen(year, month) {
     };
 }
 
+async function getAllRows(sheetType) {
+    const client = getSheetsClient();
+    if (!client) throw new Error('Google Sheets not configured');
+
+    const config = SHEET_CONFIG[sheetType];
+    if (!config) throw new Error('Tipo de hoja inválido');
+
+    const response = await client.spreadsheets.values.get({
+        spreadsheetId: config.spreadsheetId,
+        range: config.range
+    });
+
+    const allRows = response.data.values || [];
+    if (allRows.length < 2) return { headers: allRows[0] || [], rows: [] };
+
+    const headers = allRows[0];
+    const rows = allRows.slice(1).map((row, i) => ({
+        rowIndex: i + 2,
+        cells: Array.from({ length: headers.length }, (_, j) => row[j] || '')
+    }));
+
+    return { headers, rows };
+}
+
+async function getSheetHeaders(sheetType) {
+    const client = getSheetsClient();
+    if (!client) throw new Error('Google Sheets not configured');
+
+    const config = SHEET_CONFIG[sheetType];
+    if (!config) throw new Error('Tipo de hoja inválido');
+
+    const response = await client.spreadsheets.values.get({
+        spreadsheetId: config.spreadsheetId,
+        range: `${config.sheetName}!1:1`
+    });
+
+    const headers = response.data.values?.[0] || [];
+    const currencyHeaders = config.currencyHeaders || [];
+    return { headers, currencyHeaders };
+}
+
+// Insert a new row at position 2 (after header), pushing existing data down
+async function insertRowAt2(sheetType, cellValues) {
+    const client = getSheetsClient();
+    if (!client) throw new Error('Google Sheets not configured');
+
+    const config = SHEET_CONFIG[sheetType];
+    if (!config) throw new Error('Tipo de hoja inválido');
+
+    // Get numeric sheet ID (gid) for batchUpdate
+    const spreadsheet = await client.spreadsheets.get({
+        spreadsheetId: config.spreadsheetId,
+        fields: 'sheets.properties'
+    });
+    const sheet = spreadsheet.data.sheets.find(s => s.properties.title === config.sheetName);
+    if (!sheet) throw new Error(`Hoja "${config.sheetName}" no encontrada`);
+    const sheetId = sheet.properties.sheetId;
+
+    // 1. Insert blank row at index 1 (row 2, 0-based)
+    await client.spreadsheets.batchUpdate({
+        spreadsheetId: config.spreadsheetId,
+        requestBody: {
+            requests: [{
+                insertDimension: {
+                    range: { sheetId, dimension: 'ROWS', startIndex: 1, endIndex: 2 },
+                    inheritFromBefore: false
+                }
+            }]
+        }
+    });
+
+    // 2. Write data into the new row 2
+    const lastCol = columnIndexToLetter(cellValues.length - 1);
+    await client.spreadsheets.values.update({
+        spreadsheetId: config.spreadsheetId,
+        range: `${config.sheetName}!A2:${lastCol}2`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [cellValues] }
+    });
+
+    return { rowIndex: 2, cells: cellValues };
+}
+
 module.exports = {
     isAuthorizedEmail,
     getFinanzasResumen,
     getFullSheet,
+    getAllRows,
+    getSheetHeaders,
     updateCell,
-    appendRow
+    appendRow,
+    insertRowAt2
 };

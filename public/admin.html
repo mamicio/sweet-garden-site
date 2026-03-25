@@ -224,15 +224,99 @@
                 <div id="panelIngresos" class="admin-panel">
                     <div class="finanzas__tabla finanzas__tabla--full">
                         <div class="finanzas__tabla-header">
-                            <h3>Ingresos del Mes</h3>
+                            <div class="ingresos-header__left">
+                                <h3>Ingresos del Mes</h3>
+                                <button id="btnFacturaVenta" class="btn btn--venta">Facturar venta</button>
+                            </div>
+                            <div class="ingresos-header__right">
+                                <button id="btnVerVentas" class="btn btn--consultar-ventas">Consultar ventas</button>
+                            </div>
                         </div>
-                        <div class="finanzas__table-wrapper finanzas__table-wrapper--spreadsheet">
-                            <table id="tablaIngresos">
-                                <thead><tr></tr></thead>
-                                <tbody></tbody>
-                            </table>
+
+                        <!-- Vista principal: tabla de Google Sheets -->
+                        <div id="ingresosTableView">
+                            <div class="finanzas__table-wrapper finanzas__table-wrapper--spreadsheet">
+                                <table id="tablaIngresos">
+                                    <thead><tr></tr></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
                         </div>
+
+                        <!-- Vista de ventas: wizard 3 pasos -->
+                        <div id="ventasView" style="display:none;">
+
+                            <!-- Paso 1: Mes -->
+                            <div id="ventasStep1">
+                                <div class="ventas-view-header">
+                                    <h4>Selecciona el mes</h4>
+                                    <button id="btnCerrarVentas" class="btn btn--outline">← Volver</button>
+                                </div>
+                                <div class="ventas-month-grid">
+                                    <button class="ventas-pick-btn" data-month="1">Enero</button>
+                                    <button class="ventas-pick-btn" data-month="2">Febrero</button>
+                                    <button class="ventas-pick-btn" data-month="3">Marzo</button>
+                                    <button class="ventas-pick-btn" data-month="4">Abril</button>
+                                    <button class="ventas-pick-btn" data-month="5">Mayo</button>
+                                    <button class="ventas-pick-btn" data-month="6">Junio</button>
+                                    <button class="ventas-pick-btn" data-month="7">Julio</button>
+                                    <button class="ventas-pick-btn" data-month="8">Agosto</button>
+                                    <button class="ventas-pick-btn" data-month="9">Septiembre</button>
+                                    <button class="ventas-pick-btn" data-month="10">Octubre</button>
+                                    <button class="ventas-pick-btn" data-month="11">Noviembre</button>
+                                    <button class="ventas-pick-btn" data-month="12">Diciembre</button>
+                                </div>
+                            </div>
+
+                            <!-- Paso 2: Año -->
+                            <div id="ventasStep2" style="display:none;">
+                                <div class="ventas-view-header">
+                                    <h4 id="ventasStep2Title">Selecciona el año</h4>
+                                    <button id="ventasBack1" class="btn btn--outline">← Cambiar mes</button>
+                                </div>
+                                <div class="ventas-year-grid">
+                                    <button class="ventas-pick-btn ventas-pick-btn--year" data-year="2024">2024</button>
+                                    <button class="ventas-pick-btn ventas-pick-btn--year" data-year="2025">2025</button>
+                                    <button class="ventas-pick-btn ventas-pick-btn--year" data-year="2026">2026</button>
+                                </div>
+                            </div>
+
+                            <!-- Paso 3: Tabla de resultados -->
+                            <div id="ventasStep3" style="display:none;">
+                                <div class="ventas-view-header">
+                                    <h4 id="ventasViewTitle">Historial de ventas</h4>
+                                    <button id="ventasBack2" class="btn btn--outline">← Cambiar período</button>
+                                </div>
+                                <div id="ventasTableLoading" class="finanzas__loading finanzas--hidden">
+                                    <div class="booking-spinner"></div>
+                                    <p>Cargando historial...</p>
+                                </div>
+                                <div id="ventasTableError" class="finanzas__error-box finanzas--hidden"></div>
+                                <div class="finanzas__table-wrapper finanzas__table-wrapper--spreadsheet">
+                                    <table id="tablaVentas" class="finanzas__tabla--full">
+                                        <thead><tr></tr></thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+
                         <div id="ingresosStatus" class="finanzas__save-status"></div>
+                    </div>
+
+                    <!-- Modal: Nueva Factura de Venta -->
+                    <div id="modalFacturaVenta" class="modal-overlay" style="display:none;">
+                        <div class="modal-card">
+                            <div class="modal-card__header">
+                                <h3>Nueva Factura de Venta</h3>
+                                <button id="btnCerrarModal" class="modal-close">&times;</button>
+                            </div>
+                            <form id="formFacturaVenta" class="booking-form">
+                                <div id="ventaFormFields"></div>
+                                <button type="submit" class="btn btn--primary" style="width:100%;margin-top:8px;">Guardar factura</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
