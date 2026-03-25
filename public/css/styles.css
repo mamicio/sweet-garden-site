@@ -2118,19 +2118,19 @@ h1, h2, h3, h4 {
 /* ===== INGRESOS — Factura Venta / Ventas ===== */
 
 /* Green button */
-.btn--wizard-back {
+.btn.btn--wizard-back {
     font-size: 0.82rem;
     padding: 6px 14px;
     background: #ede0f7;
     color: var(--purple);
-    border: 1.5px solid #c9a8e8;
+    border: 2px solid #c9a8e8;
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-weight: 600;
     font-family: 'Poppins', sans-serif;
-    transition: background 0.2s, color 0.2s;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
-.btn--wizard-back:hover {
+.btn.btn--wizard-back:hover {
     background: var(--purple-light);
     color: #fff;
     border-color: var(--purple-light);
