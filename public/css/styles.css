@@ -2118,21 +2118,21 @@ h1, h2, h3, h4 {
 /* ===== INGRESOS — Factura Venta / Ventas ===== */
 
 /* Green button */
-.btn--consultar-ventas {
+.btn--historico-ventas {
     font-size: 0.85rem;
     padding: 7px 16px;
-    background: transparent;
-    color: #2d8a3e;
-    border: 2px solid #2d8a3e;
+    background: var(--purple);
+    color: #fff;
+    border: 2px solid var(--purple);
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-weight: 600;
     font-family: 'Poppins', sans-serif;
-    transition: background 0.2s, color 0.2s;
+    transition: background 0.2s, border-color 0.2s;
 }
-.btn--consultar-ventas:hover {
-    background: #2d8a3e;
-    color: #fff;
+.btn--historico-ventas:hover {
+    background: var(--purple-dark);
+    border-color: var(--purple-dark);
 }
 
 .btn--venta {

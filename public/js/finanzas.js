@@ -1168,13 +1168,43 @@
                 return;
             }
 
+            // Detectar índice de columna Fecha (para formatear)
+            const fechaColIdx = data.headers.findIndex(h => h.toLowerCase().trim() === 'fecha');
+
             data.rows.forEach((row, idx) => {
                 const tr = document.createElement('tr');
                 let cells = `<td>${idx + 1}</td>`;
                 visibleIdx.forEach(i => {
                     const isCurrency = data.currencyColumns && data.currencyColumns.includes(i);
                     const val = row.cells[i] || '';
-                    const display = isCurrency && val ? formatCurrency(parseCurrencyClient(val)) : escapeHtml(val);
+                    let display;
+                    if (i === fechaColIdx && val) {
+                        // Normalizar a AAAA/MM/DD sin importar el formato origen
+                        const d = new Date(val);
+                        if (!isNaN(d.getTime())) {
+                            const yy = d.getFullYear();
+                            const mm = String(d.getMonth() + 1).padStart(2, '0');
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            display = `${yy}/${mm}/${dd}`;
+                        } else {
+                            // Intentar extraer partes si el valor es texto tipo "2026-3-25" o "25/03/2026"
+                            const parts = val.split(/[-\/]/);
+                            if (parts.length === 3) {
+                                const [a, b, c] = parts.map(Number);
+                                // Si primer número es el año (>1000)
+                                const yy2 = a > 1000 ? a : c;
+                                const mm2 = a > 1000 ? String(b).padStart(2,'0') : String(b).padStart(2,'0');
+                                const dd2 = a > 1000 ? String(c).padStart(2,'0') : String(a).padStart(2,'0');
+                                display = `${yy2}/${mm2}/${dd2}`;
+                            } else {
+                                display = escapeHtml(val);
+                            }
+                        }
+                    } else if (isCurrency && val) {
+                        display = formatCurrency(parseCurrencyClient(val));
+                    } else {
+                        display = escapeHtml(val);
+                    }
                     cells += `<td>${display}</td>`;
                 });
                 tr.innerHTML = cells;
