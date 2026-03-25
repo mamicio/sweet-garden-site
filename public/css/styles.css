@@ -1707,6 +1707,7 @@ h1, h2, h3, h4 {
     max-height: 500px;
     border: 1px solid var(--gray-200);
     border-radius: var(--radius-sm);
+    -webkit-overflow-scrolling: touch;
 }
 
 .finanzas__tabla table {
@@ -2434,5 +2435,15 @@ h1, h2, h3, h4 {
     }
     .mostrador-item {
         grid-template-columns: 1fr 60px 90px auto;
+    }
+    /* Tabla historial ventas: scroll horizontal visible en móvil */
+    .finanzas__table-wrapper--spreadsheet {
+        overflow-x: scroll;
+        max-height: 60vh;
+        display: block;
+        width: 100%;
+    }
+    #tablaVentas {
+        min-width: 600px;
     }
 }
