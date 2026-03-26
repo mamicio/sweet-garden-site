@@ -100,7 +100,7 @@ async function buscarTerceroPorIdentificacion(identificacion) {
 
 // ====== Crear documento de venta ======
 
-async function crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, renglones, concepto }) {
+async function crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, idMedioPago, renglones, concepto }) {
     const cfg = {
         idEmpresa:            parseInt(process.env.WO_ID_EMPRESA),
         prefijo:              parseInt(process.env.WO_PREFIJO_FV),
@@ -137,6 +137,12 @@ async function crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, rengl
             concepto:       r.concepto || ''
         }))
     };
+
+    // Agregar mediosPago si se proporciona el id
+    if (idMedioPago) {
+        const valorTotal = renglones.reduce((s, r) => s + (r.cantidad * r.valorUnitario), 0);
+        payload.mediosPago = [{ idMedioPago, valor: valorTotal }];
+    }
 
     return woFetch('/documentos/crearDocumentoVenta', {
         body: JSON.stringify(payload)

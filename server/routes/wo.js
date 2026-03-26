@@ -109,16 +109,20 @@ router.post('/documento', requireAuth, async (req, res) => {
             return res.status(500).json({ error: 'Faltan WO_INV_* en .env para los productos seleccionados' });
         }
 
-        // Mapear medio de pago a ID configurado
-        const idFormaPago = medioPago.toLowerCase().includes('ahorro')
-            ? parseInt(process.env.WO_ID_FORMA_PAGO_AHORROS)
-            : parseInt(process.env.WO_ID_FORMA_PAGO_EFECTIVO);
+        // Mapear medio de pago a IDs configurados
+        const isAhorro = medioPago.toLowerCase().includes('ahorro');
+        const idFormaPago  = isAhorro
+            ? parseInt(process.env.WO_ID_FORMA_PAGO_AHORROS)    // 62 Consignación bancaria
+            : parseInt(process.env.WO_ID_FORMA_PAGO_EFECTIVO);   // 4  Efectivo - Contado
+        const idMedioPago  = isAhorro
+            ? parseInt(process.env.WO_ID_MEDIO_PAGO_AHORROS)     // 68 Tarjeta Débito
+            : parseInt(process.env.WO_ID_MEDIO_PAGO_EFECTIVO);   // 32 Efectivo
 
         if (!idFormaPago) {
             return res.status(500).json({ error: 'Configurar WO_ID_FORMA_PAGO_EFECTIVO / WO_ID_FORMA_PAGO_AHORROS en .env' });
         }
 
-        const result = await crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, renglones: renglonesResueltos, concepto });
+        const result = await crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, idMedioPago, renglones: renglonesResueltos, concepto });
 
         res.status(201).json({ success: true, documento: result.data || result });
 
