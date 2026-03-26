@@ -128,7 +128,9 @@ router.post('/documento', requireAuth, async (req, res) => {
             ...r,
             idInventario: r.idInventario ||
                 INV_MAP[(r._prodName || '').toLowerCase().trim()] ||
-                idInventarioGenerico
+                idInventarioGenerico,
+            // Enviar valor sin IVA con decimales para que WO sume 19% y dé el total exacto
+            valorUnitario: parseFloat((r.valorUnitario / 1.19).toFixed(2))
         }));
 
         if (renglonesResueltos.some(r => !r.idInventario)) {
