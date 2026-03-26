@@ -65,8 +65,13 @@ router.post('/documento', requireAuth, async (req, res) => {
             concepto
         } = req.body;
 
-        if (!fecha || !clienteId || !medioPago || !renglones?.length) {
-            return res.status(400).json({ error: 'Faltan campos requeridos: fecha, clienteId, medioPago, renglones' });
+        const missing = [];
+        if (!fecha)              missing.push('fecha');
+        if (!clienteId)          missing.push('ID del cliente');
+        if (!medioPago)          missing.push('Medio de pago');
+        if (!renglones?.length)  missing.push('renglones (ningún producto con valor)');
+        if (missing.length) {
+            return res.status(400).json({ error: `Faltan campos requeridos: ${missing.join(', ')}` });
         }
 
         // Resolver idTerceroExterno desde WO
