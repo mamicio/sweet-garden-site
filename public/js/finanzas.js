@@ -628,9 +628,25 @@
 
     // ====== Venta Mostrador ======
 
-    const MOSTRADOR_PRODUCTS = ['Botella Aqua', 'Monster', 'Cerveza Pilsen'];
+    // Productos cargados dinámicamente del sheet
+    let mostradorProductosCache = null;
 
-    function buildMostradorRow(section, prod) {
+    async function fetchMostradorProductos() {
+        if (mostradorProductosCache) return mostradorProductosCache;
+        try {
+            const res = await fetch('/api/productos', {
+                headers: { 'Authorization': `Bearer ${currentUser.token}` }
+            });
+            if (res.ok) mostradorProductosCache = await res.json();
+        } catch (e) { console.error('Error cargando productos:', e); }
+        return mostradorProductosCache || [];
+    }
+
+    function toTitleCase(str) {
+        return str.toLowerCase().replace(/(?:^|\s)\S/g, c => c.toUpperCase());
+    }
+
+    function buildMostradorRow(section, prod, valorDefault) {
         const row = document.createElement('div');
         row.className = 'mostrador-item';
         row.dataset.product = prod;
@@ -652,27 +668,29 @@
         priceInput.type = 'number'; priceInput.min = '0'; priceInput.step = '1';
         priceInput.placeholder = '$ Unit.'; priceInput.disabled = true;
         priceInput.className = 'mostrador-price';
+        if (valorDefault) priceInput.dataset.defaultPrice = valorDefault;
 
         const subtotal = document.createElement('span');
         subtotal.className = 'mostrador-subtotal';
         subtotal.textContent = '$0';
 
-        // Remove button (only for custom items, not default ones)
-        const isDefault = MOSTRADOR_PRODUCTS.includes(prod);
-        if (!isDefault) {
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'mostrador-remove';
-            removeBtn.title = 'Eliminar';
-            removeBtn.textContent = '×';
-            removeBtn.addEventListener('click', () => { row.remove(); updateMostradorTotals(); });
-            row.appendChild(removeBtn);
-        }
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'mostrador-remove';
+        removeBtn.title = 'Eliminar';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', () => { row.remove(); updateMostradorTotals(); });
+        row.appendChild(removeBtn);
 
         check.addEventListener('change', () => {
             qtyInput.disabled = !check.checked;
             priceInput.disabled = !check.checked;
-            if (!check.checked) { qtyInput.value = ''; priceInput.value = ''; }
+            if (check.checked) {
+                if (!qtyInput.value) qtyInput.value = '1';
+                if (!priceInput.value && valorDefault) priceInput.value = valorDefault;
+            } else {
+                qtyInput.value = ''; priceInput.value = '';
+            }
             updateMostradorTotals();
         });
         qtyInput.addEventListener('input', updateMostradorTotals);
@@ -725,15 +743,24 @@
         header.appendChild(searchWrap);
         section.appendChild(header);
 
-        // Grand total placeholder (needed before rows so insertBefore works)
+        // Loading indicator
+        const loading = document.createElement('p');
+        loading.textContent = 'Cargando productos...';
+        loading.className = 'mostrador-loading';
+        section.appendChild(loading);
+
+        // Grand total placeholder
         const grandTotal = document.createElement('div');
         grandTotal.id = 'mostradorGrandTotal';
         grandTotal.className = 'mostrador-grand-total';
         grandTotal.textContent = 'Total: $0';
         section.appendChild(grandTotal);
 
-        // Default products
-        MOSTRADOR_PRODUCTS.forEach(prod => buildMostradorRow(section, prod));
+        // Cargar productos dinámicamente del sheet
+        fetchMostradorProductos().then(productos => {
+            loading.remove();
+            productos.forEach(p => buildMostradorRow(section, p.nombre, p.valor));
+        });
 
         // Add-product row
         const addRow = document.createElement('div');
@@ -744,6 +771,11 @@
         addInput.className = 'mostrador-add-input';
         addInput.placeholder = 'Nombre del producto...';
 
+        const addPriceInput = document.createElement('input');
+        addPriceInput.type = 'text';
+        addPriceInput.className = 'mostrador-add-price';
+        addPriceInput.placeholder = '$ Valor...';
+
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'mostrador-add-btn';
@@ -752,9 +784,14 @@
         const addFeedback = document.createElement('span');
         addFeedback.className = 'mostrador-add-feedback';
 
-        addBtn.addEventListener('click', () => {
-            const name = addInput.value.trim();
-            if (!name) return;
+        addBtn.addEventListener('click', async () => {
+            const rawName = addInput.value.trim();
+            const rawPrice = addPriceInput.value.trim();
+            if (!rawName) return;
+
+            // Normalizar nombre (Title Case) y valor (sin puntos ni comas)
+            const name = toTitleCase(rawName);
+            const valor = parseInt(rawPrice.replace(/[.,]/g, '')) || 0;
 
             // Check duplicate (case-insensitive)
             const existing = [...section.querySelectorAll('.mostrador-item')]
@@ -763,22 +800,34 @@
             if (existing) {
                 addFeedback.textContent = '⚠ Ya existe';
                 addFeedback.style.color = '#e67e22';
-                // Highlight existing row briefly
                 existing.style.background = '#fff3cd';
                 setTimeout(() => { existing.style.background = ''; addFeedback.textContent = ''; }, 2000);
                 return;
             }
 
-            buildMostradorRow(section, name);
+            // Guardar en el sheet para futuras ventas
+            try {
+                await fetch('/api/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentUser.token}` },
+                    body: JSON.stringify({ nombre: name, valor })
+                });
+                mostradorProductosCache = null; // invalidar cache
+            } catch (e) { console.error('Error guardando producto:', e); }
+
+            buildMostradorRow(section, name, valor);
             addInput.value = '';
-            addFeedback.textContent = '✓ Agregado';
+            addPriceInput.value = '';
+            addFeedback.textContent = '✓ Guardado';
             addFeedback.style.color = '#27ae60';
             setTimeout(() => { addFeedback.textContent = ''; }, 1500);
         });
 
-        addInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); } });
+        addInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addPriceInput.focus(); } });
+        addPriceInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); } });
 
         addRow.appendChild(addInput);
+        addRow.appendChild(addPriceInput);
         addRow.appendChild(addBtn);
         addRow.appendChild(addFeedback);
         section.appendChild(addRow);

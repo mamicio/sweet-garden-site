@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { bookingLimiter } = require('../middleware/rateLimit');
 const { getAvailableSlots, createBooking } = require('../services/calendarService');
-const { getFinanzasResumen, getFullSheet, getAllRows, getSheetHeaders, insertRowAt2 } = require('../services/sheetsService');
+const { getFinanzasResumen, getFullSheet, getAllRows, getSheetHeaders, insertRowAt2, getProductos, addProducto } = require('../services/sheetsService');
 const {
     verifyGoogleToken,
     createSessionToken,
@@ -296,6 +296,30 @@ router.post('/finanzas/sheet/:type', requireAuth, async (req, res) => {
         res.status(201).json({ success: true, ...result });
     } catch (err) {
         console.error('Append row error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ====== Productos (pestaña "Productos" del sheet Ingresos) ======
+
+router.get('/productos', requireAuth, async (req, res) => {
+    try {
+        const productos = await getProductos();
+        res.json(productos);
+    } catch (err) {
+        console.error('Get productos error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/productos', requireAuth, async (req, res) => {
+    try {
+        const { nombre, valor } = req.body;
+        if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+        const result = await addProducto(nombre, valor || 0);
+        res.status(201).json(result);
+    } catch (err) {
+        console.error('Add producto error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });

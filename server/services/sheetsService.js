@@ -326,6 +326,44 @@ async function insertRowAt2(sheetType, cellValues) {
     return { rowIndex: 2, cells: cellValues };
 }
 
+// ====== Productos (pestaña "Productos" en Ingresos sheet) ======
+
+async function getProductos() {
+    const client = getSheetsClient();
+    if (!client) throw new Error('Google Sheets not configured');
+
+    const response = await client.spreadsheets.values.get({
+        spreadsheetId: INGRESOS_SHEET_ID,
+        range: 'Productos!A:B'
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length <= 1) return [];
+
+    // Skip header row, return [{nombre, valor}]
+    return rows.slice(1)
+        .filter(r => r[0] && r[0].trim())
+        .map(r => ({
+            nombre: r[0].trim(),
+            valor: parseFloat((r[1] || '0').toString().replace(/[.,]/g, '')) || 0
+        }));
+}
+
+async function addProducto(nombre, valor) {
+    const client = getSheetsClient();
+    if (!client) throw new Error('Google Sheets not configured');
+
+    await client.spreadsheets.values.append({
+        spreadsheetId: INGRESOS_SHEET_ID,
+        range: 'Productos!A:B',
+        valueInputOption: 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: [[nombre, valor]] }
+    });
+
+    return { nombre, valor };
+}
+
 module.exports = {
     isAuthorizedEmail,
     getFinanzasResumen,
@@ -334,5 +372,7 @@ module.exports = {
     getSheetHeaders,
     updateCell,
     appendRow,
-    insertRowAt2
+    insertRowAt2,
+    getProductos,
+    addProducto
 };
