@@ -132,8 +132,8 @@ async function crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, idMed
     const cfg = {
         idEmpresa:            parseInt(process.env.WO_ID_EMPRESA),
         prefijo:              parseInt(process.env.WO_PREFIJO_FV),
-        idTerceroInterno:     parseInt(process.env.WO_ID_TERCERO_INTERNO),
-        idMoneda:             parseInt(process.env.WO_ID_MONEDA  || 1),
+        idTerceroInterno:     1030,  // Vendedor: Esteban Hincapíé García (CC 1035867387)
+        idMoneda:             31,    // COP - Peso Colombiano
         idBodega:             parseInt(process.env.WO_ID_BODEGA),
     };
 

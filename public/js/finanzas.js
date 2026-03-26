@@ -1167,7 +1167,9 @@
         try {
             // 1. Crear documento en WorldOffice
             submitBtn.textContent = 'Creando en WO...';
-            const woDoc = await crearDocumentoWO(values);
+            const woResult = await crearDocumentoWO(values);
+            const woDoc = woResult.documento;
+            const vs = woResult.valoresSheet;
 
             // 2. Insertar ID del documento WO en la columna correspondiente
             const docWoIdx = sheetMeta.headers.findIndex(h =>
@@ -1177,6 +1179,19 @@
                 values[docWoIdx] = woDoc.numero
                     ? `${woDoc.prefijo?.nombre || ''}${woDoc.numero}`
                     : String(woDoc.id || '');
+            }
+
+            // 2b. Auto-llenar columnas de valores calculados (IVA 19%)
+            if (vs) {
+                const colMap = {
+                    'valor sin iva': vs.valorSinIva,
+                    'vlr ant de iva': vs.vlrAntDeIva,
+                    'valor neto': vs.valorNeto
+                };
+                for (const [colName, val] of Object.entries(colMap)) {
+                    const idx = sheetMeta.headers.findIndex(h => h.toLowerCase().trim() === colName);
+                    if (idx !== -1) values[idx] = val;
+                }
             }
 
             // 3. Guardar en Google Sheets
@@ -1349,7 +1364,7 @@
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al crear documento en WO');
-        return data.documento;
+        return { documento: data.documento, valoresSheet: data.valoresSheet };
     }
 
     function isVentaMostradorActiva() {

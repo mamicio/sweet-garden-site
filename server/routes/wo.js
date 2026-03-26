@@ -120,11 +120,18 @@ router.post('/documento', requireAuth, async (req, res) => {
         };
         const idInventarioGenerico = 1004; // VENTA MOSTRADOR por defecto
 
+        // Calcular valores: WO recibe valor sin IVA, el IVA 19% lo agrega WO automáticamente
+        const valorBrutoTotal = renglones.reduce((s, r) => s + (r.cantidad * r.valorUnitario), 0);
+        const valorSinIva = Math.round(valorBrutoTotal / 1.19);
+        const valorIva = valorBrutoTotal - valorSinIva;
+
         const renglonesResueltos = renglones.map(r => ({
             ...r,
             idInventario: r.idInventario ||
                 INV_MAP[(r._prodName || '').toLowerCase().trim()] ||
-                idInventarioGenerico
+                idInventarioGenerico,
+            // WO recibe el valor sin IVA (el 19% lo calcula WO)
+            valorUnitario: Math.round(r.valorUnitario / 1.19)
         }));
 
         if (renglonesResueltos.some(r => !r.idInventario)) {
@@ -146,7 +153,17 @@ router.post('/documento', requireAuth, async (req, res) => {
 
         const result = await crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, idMedioPago, renglones: renglonesResueltos, concepto });
 
-        res.status(201).json({ success: true, documento: result.data || result });
+        // Retornar valores calculados para que el frontend los escriba en el sheet
+        res.status(201).json({
+            success: true,
+            documento: result.data || result,
+            valoresSheet: {
+                valorBruto: valorBrutoTotal,
+                valorSinIva,
+                vlrAntDeIva: valorSinIva,
+                valorNeto: valorBrutoTotal
+            }
+        });
 
     } catch (err) {
         console.error('WO crear documento error:', err.message);
