@@ -108,13 +108,17 @@ router.post('/documento', requireAuth, async (req, res) => {
             }
         }
 
-        // Resolver idInventario por nombre de producto
+        // Resolver idInventario por nombre de producto (IDs fijos de WO)
         const INV_MAP = {
-            'botella aqua':   parseInt(process.env.WO_INV_BOTELLA_AQUA),
-            'monster':        parseInt(process.env.WO_INV_MONSTER),
-            'cerveza pilsen': parseInt(process.env.WO_INV_CERVEZA_PILSEN),
+            'venta mostrador':              1004,
+            'mostrador':                    1004,
+            'arrendamiento tattoo 19%':     1003,
+            'arriendo tattoo':              1003,
+            'arrendamiento perforaciones 19%': 1002,
+            'arriendo perforaciones':       1002,
+            'coworking':                    1021,
         };
-        const idInventarioGenerico = parseInt(process.env.WO_INV_GENERICO);
+        const idInventarioGenerico = 1004; // VENTA MOSTRADOR por defecto
 
         const renglonesResueltos = renglones.map(r => ({
             ...r,
@@ -124,7 +128,7 @@ router.post('/documento', requireAuth, async (req, res) => {
         }));
 
         if (renglonesResueltos.some(r => !r.idInventario)) {
-            return res.status(500).json({ error: 'Faltan WO_INV_* en .env para los productos seleccionados' });
+            return res.status(500).json({ error: 'No se encontró el idInventario para alguno de los productos' });
         }
 
         // Mapear medio de pago a IDs configurados

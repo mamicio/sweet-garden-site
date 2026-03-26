@@ -1256,22 +1256,25 @@
         let renglones = [];
 
         if (isVentaMostradorActiva()) {
-            // Mostrador: items individuales con idInventario de .env
+            // Mostrador: un solo renglón con el total, usando producto VENTA MOSTRADOR en WO
+            let totalMostrador = 0;
             document.querySelectorAll('.mostrador-item').forEach(row => {
                 if (!row.querySelector('.mostrador-check').checked) return;
                 const qty   = parseFloat(row.querySelector('.mostrador-qty').value)   || 0;
                 const price = parseFloat(row.querySelector('.mostrador-price').value) || 0;
-                if (!qty) return;
-                const prod = row.dataset.product;
-                const envKey = {
-                    'Botella Aqua':  process.env.WO_INV_BOTELLA_AQUA,
-                    'Monster':       process.env.WO_INV_MONSTER,
-                    'Cerveza Pilsen': process.env.WO_INV_CERVEZA_PILSEN
-                }[prod]; // will be undefined on frontend; resolved server-side
-                renglones.push({ concepto: prod, cantidad: qty, valorUnitario: price, idInventario: null, _prodName: prod });
+                totalMostrador += qty * price;
             });
+            if (totalMostrador > 0) {
+                renglones.push({
+                    concepto: 'Venta Mostrador',
+                    cantidad: 1,
+                    valorUnitario: totalMostrador,
+                    idInventario: null,
+                    _prodName: 'Venta Mostrador'
+                });
+            }
         } else {
-            // Producto genérico: un solo renglón
+            // Producto específico: un solo renglón
             const vbIdx = headers.findIndex(h => h.toLowerCase().includes('valor') && h.toLowerCase().includes('bruto'));
             const valorBruto = parseFloat(vbIdx !== -1 ? (values[vbIdx] || 0) : 0) || 0;
             renglones.push({
