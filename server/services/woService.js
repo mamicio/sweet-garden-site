@@ -104,6 +104,28 @@ async function buscarTerceroPorIdentificacionGet(identificacion) {
     });
 }
 
+// ====== Crear tercero ======
+
+async function crearTercero({ identificacion, primerNombre, primerApellido, telefono, email, direccion, idCiudad }) {
+    return woFetch('/terceros/crearTercero', {
+        body: JSON.stringify({
+            idTerceroTipoIdentificacion: 3,   // CC - Cédula de Ciudadanía
+            identificacion: String(identificacion),
+            primerNombre:   primerNombre || 'Cliente',
+            primerApellido: primerApellido || 'Sweet Garden',
+            idCiudad:       idCiudad || 59,   // Itagüí por defecto
+            direccion:      direccion || 'Sin dirección',
+            telefono:       telefono || '0000000000',
+            email:          email || 'sin@email.com',
+            idTerceroTipos: [4],              // Cliente
+            responsabilidadFiscal: [5],       // R-99-PN No Aplica (Persona Natural)
+            idClasificacionImpuestos: 1,
+            idTerceroTipoContribuyente: 6,    // Persona Natural No Responsable del IVA
+            plazoDias: 1
+        })
+    });
+}
+
 // ====== Crear documento de venta ======
 
 async function crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, idMedioPago, renglones, concepto }) {
@@ -168,5 +190,6 @@ module.exports = {
     tiposIdentificacion,
     buscarTerceroPorIdentificacion,
     buscarTerceroPorIdentificacionGet,
+    crearTercero,
     crearDocumentoVenta
 };

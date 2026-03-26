@@ -1286,7 +1286,13 @@
         const res = await fetch('/api/wo/documento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentUser.token}` },
-            body: JSON.stringify({ fecha: fechaHoy, clienteId, medioPago, renglones, concepto: get('Producto') || 'Venta Sweet Garden' })
+            body: JSON.stringify({
+                fecha: fechaHoy, clienteId, medioPago, renglones,
+                concepto: get('Producto') || 'Venta Sweet Garden',
+                clienteNombre: get('Nombre') || get('Cliente') || '',
+                clienteTelefono: get('Telefono') || get('Teléfono') || get('Celular') || '',
+                clienteEmail: get('Email') || get('Correo') || ''
+            })
         });
 
         const data = await res.json();

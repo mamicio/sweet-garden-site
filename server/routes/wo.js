@@ -15,6 +15,7 @@ const {
     tiposIdentificacion,
     buscarTerceroPorIdentificacion,
     buscarTerceroPorIdentificacionGet,
+    crearTercero,
     crearDocumentoVenta
 } = require('../services/woService');
 const { verifySessionToken, isAuthorizedEmail } = require('../services/authService');
@@ -63,7 +64,10 @@ router.post('/documento', requireAuth, async (req, res) => {
             clienteId,         // identificación del cliente (CC/NIT)
             medioPago,         // "Efectivo" | "Ahorros"
             renglones,         // [{ idInventario, cantidad, valorUnitario, concepto }]
-            concepto
+            concepto,
+            clienteNombre,     // nombre completo del cliente (para crear tercero si no existe)
+            clienteTelefono,
+            clienteEmail
         } = req.body;
 
         const missing = [];
@@ -75,16 +79,33 @@ router.post('/documento', requireAuth, async (req, res) => {
             return res.status(400).json({ error: `Faltan campos requeridos: ${missing.join(', ')}` });
         }
 
-        // Resolver idTerceroExterno desde WO usando GET /terceros/identificacion/{id}
+        // Resolver idTerceroExterno desde WO — si no existe, crearlo automáticamente
         let idTerceroExterno;
         try {
             const tercero = await buscarTerceroPorIdentificacionGet(clienteId);
             idTerceroExterno = tercero?.data?.id;
             if (!idTerceroExterno) throw new Error('No ID');
         } catch {
-            return res.status(404).json({
-                error: `Cliente con identificación "${clienteId}" no encontrado en WorldOffice. Créalo primero en WO.`
-            });
+            // No existe en WO → crearlo automáticamente
+            try {
+                const nombres = (clienteNombre || '').trim().split(/\s+/);
+                const primerNombre = nombres[0] || 'Cliente';
+                const primerApellido = nombres.slice(1).join(' ') || 'Sweet Garden';
+
+                const nuevo = await crearTercero({
+                    identificacion: clienteId,
+                    primerNombre,
+                    primerApellido,
+                    telefono: clienteTelefono || '',
+                    email: clienteEmail || ''
+                });
+                idTerceroExterno = nuevo?.data?.id;
+                if (!idTerceroExterno) throw new Error('No se pudo obtener ID del tercero creado');
+            } catch (createErr) {
+                return res.status(500).json({
+                    error: `No se pudo crear el cliente "${clienteId}" en WO: ${createErr.message}`
+                });
+            }
         }
 
         // Resolver idInventario por nombre de producto
