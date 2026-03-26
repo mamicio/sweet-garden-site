@@ -1248,7 +1248,8 @@
         };
 
         const clienteId = get('ID');
-        const medioPago = get('Medio de pago');
+        const mpIdx = headers.findIndex(h => h.toLowerCase().includes('medio') && h.toLowerCase().includes('pago'));
+        const medioPago = mpIdx !== -1 ? (values[mpIdx] || '') : '';
         const fechaHoy  = new Date().toISOString().slice(0, 10);
 
         // Construir renglones según producto
@@ -1271,7 +1272,8 @@
             });
         } else {
             // Producto genérico: un solo renglón
-            const valorBruto = parseFloat(get('Valor bruto')) || 0;
+            const vbIdx = headers.findIndex(h => h.toLowerCase().includes('valor') && h.toLowerCase().includes('bruto'));
+            const valorBruto = parseFloat(vbIdx !== -1 ? (values[vbIdx] || 0) : 0) || 0;
             renglones.push({
                 concepto: get('Producto') || 'Venta',
                 cantidad: 1,
