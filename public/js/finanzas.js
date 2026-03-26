@@ -527,7 +527,7 @@
         return false;
     }
     // Columnas que NO se auto-rellenan al buscar por ID
-    const NO_AUTOFILL_COLS = new Set(['producto', 'valor bruto', 'valor sin iva', 'vlr ant de iva', 'valor neto', 'url', 'comentarios']);
+    const NO_AUTOFILL_COLS = new Set(['producto', 'valor bruto', 'valor sin iva', 'vlr ant de iva', 'valor neto', 'url', 'comentarios', 'medio de pago']);
 
     let sheetMeta = { headers: [], currencyHeaders: [] };
     let allSheetRows = null; // cache para búsqueda por ID
