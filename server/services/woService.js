@@ -99,7 +99,7 @@ async function buscarTerceroPorIdentificacion(identificacion) {
 }
 
 async function buscarTerceroPorIdentificacionGet(identificacion) {
-    return woFetch(`/terceros/identificacion?identificacion=${encodeURIComponent(identificacion)}`, {
+    return woFetch(`/terceros/identificacion/${encodeURIComponent(identificacion)}`, {
         method: 'GET'
     });
 }

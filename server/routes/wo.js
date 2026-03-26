@@ -75,14 +75,11 @@ router.post('/documento', requireAuth, async (req, res) => {
             return res.status(400).json({ error: `Faltan campos requeridos: ${missing.join(', ')}` });
         }
 
-        // Resolver idTerceroExterno desde WO usando GET /terceros/identificacion
+        // Resolver idTerceroExterno desde WO usando GET /terceros/identificacion/{id}
         let idTerceroExterno;
         try {
             const tercero = await buscarTerceroPorIdentificacionGet(clienteId);
-            // Puede venir como objeto directo, array, o envuelto en data/content
-            const data = tercero?.data ?? tercero;
-            const item = Array.isArray(data) ? data[0] : (data?.content ? (Array.isArray(data.content) ? data.content[0] : data.content) : data);
-            idTerceroExterno = item?.id;
+            idTerceroExterno = tercero?.data?.id;
             if (!idTerceroExterno) throw new Error('No ID');
         } catch {
             return res.status(404).json({
