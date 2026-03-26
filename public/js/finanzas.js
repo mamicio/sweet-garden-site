@@ -1194,6 +1194,12 @@
                 }
             }
 
+            // 2c. Auto-llenar Tipo de documento y Comercial
+            const tipoDocIdx = sheetMeta.headers.findIndex(h => h.toLowerCase().trim() === 'tipo de documento');
+            if (tipoDocIdx !== -1) values[tipoDocIdx] = 'FVE';
+            const comercialIdx = sheetMeta.headers.findIndex(h => h.toLowerCase().trim() === 'comercial');
+            if (comercialIdx !== -1) values[comercialIdx] = 'Esteban Hincapie Garcia';
+
             // 3. Guardar en Google Sheets
             submitBtn.textContent = 'Guardando en Sheet...';
             const res = await fetch('/api/finanzas/sheet/ingresos', {
