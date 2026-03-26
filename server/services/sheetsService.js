@@ -364,6 +364,78 @@ async function addProducto(nombre, valor) {
     return { nombre, valor };
 }
 
+// ====== Proteger rangos ======
+
+async function protegerHoja(sheetType, editorEmails) {
+    const client = getSheetsClient();
+    if (!client) throw new Error('Google Sheets not configured');
+
+    const config = SHEET_CONFIG[sheetType];
+    if (!config) throw new Error('Tipo de hoja inválido');
+
+    // Obtener sheetId y headers
+    const spreadsheet = await client.spreadsheets.get({
+        spreadsheetId: config.spreadsheetId,
+        fields: 'sheets.properties,sheets.protectedRanges'
+    });
+    const sheet = spreadsheet.data.sheets.find(s => s.properties.title === config.sheetName);
+    if (!sheet) throw new Error(`Hoja "${config.sheetName}" no encontrada`);
+    const sheetId = sheet.properties.sheetId;
+
+    // Leer headers para saber cuántas columnas hay
+    const headersRes = await client.spreadsheets.values.get({
+        spreadsheetId: config.spreadsheetId,
+        range: `${config.sheetName}!1:1`
+    });
+    const headers = headersRes.data.values?.[0] || [];
+    const numCols = headers.length;
+
+    // Eliminar protecciones existentes de esta hoja (para no duplicar)
+    const existingProtections = sheet.protectedRanges || [];
+    if (existingProtections.length > 0) {
+        await client.spreadsheets.batchUpdate({
+            spreadsheetId: config.spreadsheetId,
+            requestBody: {
+                requests: existingProtections.map(p => ({
+                    deleteProtectedRange: { protectedRangeId: p.protectedRangeId }
+                }))
+            }
+        });
+    }
+
+    const requests = [
+        // 1. Proteger fila de encabezados (fila 1)
+        {
+            addProtectedRange: {
+                protectedRange: {
+                    range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: numCols },
+                    description: 'Encabezados - No modificar',
+                    warningOnly: false,
+                    editors: { users: editorEmails }
+                }
+            }
+        },
+        // 2. Proteger estructura de columnas (no agregar/eliminar columnas)
+        {
+            addProtectedRange: {
+                protectedRange: {
+                    range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: numCols, endColumnIndex: numCols + 10 },
+                    description: 'Columnas reservadas - No agregar sin autorización',
+                    warningOnly: true,
+                    editors: { users: editorEmails }
+                }
+            }
+        }
+    ];
+
+    await client.spreadsheets.batchUpdate({
+        spreadsheetId: config.spreadsheetId,
+        requestBody: { requests }
+    });
+
+    return { protectedHeaders: headers, numCols, sheets: [config.sheetName] };
+}
+
 module.exports = {
     isAuthorizedEmail,
     getFinanzasResumen,
@@ -374,5 +446,6 @@ module.exports = {
     appendRow,
     insertRowAt2,
     getProductos,
-    addProducto
+    addProducto,
+    protegerHoja
 };

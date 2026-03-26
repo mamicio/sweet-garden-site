@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { bookingLimiter } = require('../middleware/rateLimit');
 const { getAvailableSlots, createBooking } = require('../services/calendarService');
-const { getFinanzasResumen, getFullSheet, getAllRows, getSheetHeaders, insertRowAt2, getProductos, addProducto } = require('../services/sheetsService');
+const { getFinanzasResumen, getFullSheet, getAllRows, getSheetHeaders, insertRowAt2, getProductos, addProducto, protegerHoja } = require('../services/sheetsService');
 const {
     verifyGoogleToken,
     createSessionToken,
@@ -320,6 +320,27 @@ router.post('/productos', requireAuth, async (req, res) => {
         res.status(201).json(result);
     } catch (err) {
         console.error('Add producto error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ====== Proteger hojas ======
+
+router.post('/proteger-hojas', requireAuth, async (req, res) => {
+    try {
+        const editorEmails = (process.env.AUTHORIZED_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+        if (!editorEmails.length) return res.status(400).json({ error: 'No hay emails autorizados configurados' });
+
+        const resultIngresos = await protegerHoja('ingresos', editorEmails);
+        const resultEgresos = await protegerHoja('egresos', editorEmails);
+
+        res.json({
+            success: true,
+            ingresos: resultIngresos,
+            egresos: resultEgresos
+        });
+    } catch (err) {
+        console.error('Proteger hojas error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
