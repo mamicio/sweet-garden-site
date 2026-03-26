@@ -143,7 +143,7 @@ router.post('/documento', requireAuth, async (req, res) => {
             ? parseInt(process.env.WO_ID_FORMA_PAGO_AHORROS)    // 1001 CTA AHO 1699
             : parseInt(process.env.WO_ID_FORMA_PAGO_EFECTIVO);   // 4  Efectivo - Contado
         const idMedioPago  = isAhorro
-            ? 6                                                   // Tarjeta de Crédito
+            ? parseInt(process.env.WO_ID_MEDIO_PAGO_AHORROS)     // 68 Tarjeta Débito
             : parseInt(process.env.WO_ID_MEDIO_PAGO_EFECTIVO);   // 32 Efectivo
 
         if (!idFormaPago) {
