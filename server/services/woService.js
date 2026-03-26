@@ -98,6 +98,12 @@ async function buscarTerceroPorIdentificacion(identificacion) {
     });
 }
 
+async function buscarTerceroPorIdentificacionGet(identificacion) {
+    return woFetch(`/terceros/identificacion?identificacion=${encodeURIComponent(identificacion)}`, {
+        method: 'GET'
+    });
+}
+
 // ====== Crear documento de venta ======
 
 async function crearDocumentoVenta({ fecha, idTerceroExterno, idFormaPago, idMedioPago, renglones, concepto }) {
@@ -161,5 +167,6 @@ module.exports = {
     listarCentrosCosto,
     tiposIdentificacion,
     buscarTerceroPorIdentificacion,
+    buscarTerceroPorIdentificacionGet,
     crearDocumentoVenta
 };

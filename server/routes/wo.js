@@ -14,6 +14,7 @@ const {
     listarCentrosCosto,
     tiposIdentificacion,
     buscarTerceroPorIdentificacion,
+    buscarTerceroPorIdentificacionGet,
     crearDocumentoVenta
 } = require('../services/woService');
 const { verifySessionToken, isAuthorizedEmail } = require('../services/authService');
@@ -74,15 +75,14 @@ router.post('/documento', requireAuth, async (req, res) => {
             return res.status(400).json({ error: `Faltan campos requeridos: ${missing.join(', ')}` });
         }
 
-        // Resolver idTerceroExterno desde WO
+        // Resolver idTerceroExterno desde WO usando GET /terceros/identificacion
         let idTerceroExterno;
         try {
-            const tercero = await buscarTerceroPorIdentificacion(clienteId);
-            // WO devuelve { data: { content: [...] } }
-            const content = tercero?.data?.content || tercero?.data || [];
-            const list = Array.isArray(content) ? content : [content];
-            const t = list[0];
-            idTerceroExterno = t?.id;
+            const tercero = await buscarTerceroPorIdentificacionGet(clienteId);
+            // Puede venir como objeto directo, array, o envuelto en data/content
+            const data = tercero?.data ?? tercero;
+            const item = Array.isArray(data) ? data[0] : (data?.content ? (Array.isArray(data.content) ? data.content[0] : data.content) : data);
+            idTerceroExterno = item?.id;
             if (!idTerceroExterno) throw new Error('No ID');
         } catch {
             return res.status(404).json({
