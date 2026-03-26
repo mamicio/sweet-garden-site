@@ -140,10 +140,10 @@ router.post('/documento', requireAuth, async (req, res) => {
         // Mapear medio de pago a IDs configurados
         const isAhorro = medioPago.toLowerCase().includes('ahorro');
         const idFormaPago  = isAhorro
-            ? parseInt(process.env.WO_ID_FORMA_PAGO_AHORROS)    // 62 Consignación bancaria
+            ? parseInt(process.env.WO_ID_FORMA_PAGO_AHORROS)    // 1001 CTA AHO 1699
             : parseInt(process.env.WO_ID_FORMA_PAGO_EFECTIVO);   // 4  Efectivo - Contado
         const idMedioPago  = isAhorro
-            ? parseInt(process.env.WO_ID_MEDIO_PAGO_AHORROS)     // 68 Tarjeta Débito
+            ? 6                                                   // Tarjeta de Crédito
             : parseInt(process.env.WO_ID_MEDIO_PAGO_EFECTIVO);   // 32 Efectivo
 
         if (!idFormaPago) {
