@@ -120,18 +120,15 @@ router.post('/documento', requireAuth, async (req, res) => {
         };
         const idInventarioGenerico = 1004; // VENTA MOSTRADOR por defecto
 
-        // Calcular valores: WO recibe valor sin IVA, el IVA 19% lo agrega WO automáticamente
+        // Calcular valores para el sheet
         const valorBrutoTotal = renglones.reduce((s, r) => s + (r.cantidad * r.valorUnitario), 0);
         const valorSinIva = Math.round(valorBrutoTotal / 1.19);
-        const valorIva = valorBrutoTotal - valorSinIva;
 
         const renglonesResueltos = renglones.map(r => ({
             ...r,
             idInventario: r.idInventario ||
                 INV_MAP[(r._prodName || '').toLowerCase().trim()] ||
-                idInventarioGenerico,
-            // WO recibe el valor sin IVA (el 19% lo calcula WO)
-            valorUnitario: Math.round(r.valorUnitario / 1.19)
+                idInventarioGenerico
         }));
 
         if (renglonesResueltos.some(r => !r.idInventario)) {
