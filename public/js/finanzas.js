@@ -527,7 +527,7 @@
         return false;
     }
     // Columnas que NO se auto-rellenan al buscar por ID
-    const NO_AUTOFILL_COLS = new Set(['producto', 'valor bruto', 'valor sin iva', 'vlr ant de iva', 'valor neto', 'url']);
+    const NO_AUTOFILL_COLS = new Set(['producto', 'valor bruto', 'valor sin iva', 'vlr ant de iva', 'valor neto', 'url', 'comentarios']);
 
     let sheetMeta = { headers: [], currencyHeaders: [] };
     let allSheetRows = null; // cache para búsqueda por ID
@@ -1087,6 +1087,33 @@
 
             return val;
         });
+
+        // --- Validar campos requeridos para WO antes de llamar al servidor ---
+        const idColIdx2  = sheetMeta.headers.findIndex(h => h.toLowerCase().trim() === 'id');
+        const mpColIdx   = sheetMeta.headers.findIndex(h => h.toLowerCase().includes('medio') && h.toLowerCase().includes('pago'));
+        const clienteId  = idColIdx2 !== -1 ? (values[idColIdx2] || '').toString().trim() : '';
+        const medioPagoV = mpColIdx  !== -1 ? (values[mpColIdx]  || '').toString().trim() : '';
+
+        if (!clienteId) {
+            alert('El campo ID del cliente es obligatorio para crear la factura en WorldOffice.');
+            submitBtn.disabled = false; submitBtn.textContent = origText; return;
+        }
+        if (!medioPagoV) {
+            alert('Selecciona el Medio de pago antes de guardar.');
+            submitBtn.disabled = false; submitBtn.textContent = origText; return;
+        }
+
+        // Verificar que haya al menos un renglón con valor
+        const tieneRenglones = isVentaMostradorActiva()
+            ? [...document.querySelectorAll('.mostrador-item')].some(row =>
+                row.querySelector('.mostrador-check').checked &&
+                parseFloat(row.querySelector('.mostrador-qty').value) > 0)
+            : (parseFloat(values[sheetMeta.headers.findIndex(h => h.toLowerCase().trim() === 'valor bruto')] || 0) > 0);
+
+        if (!tieneRenglones) {
+            alert('Ingresa el Valor bruto o selecciona al menos un producto del mostrador con cantidad.');
+            submitBtn.disabled = false; submitBtn.textContent = origText; return;
+        }
 
         try {
             // 1. Crear documento en WorldOffice
